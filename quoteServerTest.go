@@ -34,6 +34,10 @@ func selectCommand(text string){
 		fmt.Print("buy Test")
 		buy()
 	}
+	if text == "sell\n"{
+		fmt.Print("sell Test")
+		sell()
+	}
 }
 
 func quoteRequest(){
@@ -61,7 +65,7 @@ func createSession(){
 
 
 func addUser(){
-	cluster := gocql.NewCluster("127.0.0.1")
+	cluster := gocql.NewCluster("192.168.1.131")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -81,7 +85,7 @@ func addUser(){
 
 func buy(){
 	//userid,stocksymbol,amount
-	cluster := gocql.NewCluster("127.0.0.1")
+	cluster := gocql.NewCluster("192.168.1.131")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -119,6 +123,59 @@ func buy(){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	fmt.Println("Cash allocated");
+
+	
+
+	//make a record of the new transaction
+
+	if err := session.Query("INSERT INTO pendingtransactions (uid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValue + ")").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+
+	defer session.Close()
+}
+
+func sell(){
+	//userid,stocksymbol,amount
+	cluster := gocql.NewCluster("192.168.1.131")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var userId string = "Jones"
+	var sellStockDollars int = 200
+	var stock string = "abs"
+	var operation string = "true"
+	var committed string = "false"
+	var stockValue int = 20
+	var usableStocks int
+
+	//check if user has enough stocks for a SELL
+	if err := session.Query("select userId, userstocks from users where userid='" + userId + "'").Scan(&userId, &usableStocks); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	fmt.Println("\n" + userId);
+	fmt.Println(usableStocks);
+	//if not close the session
+	if  (stockValue*usableStocks) < sellStockDollars{
+		session.Close()
+		return
+	}
+	var sellableStocks int = sellStockDollars/stockValue
+	//if has enough stock for desired sell amount, set aside stocks from db
+	usableStocks = usableStocks - sellableStocks;
+	usableStocksString := strconv.FormatInt(int64(usableStocks),10)
+	pendingCash := sellableStocks * stockValue;
+	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
+	fmt.Println("Available Cash is greater than buy amount");
+	if err := session.Query("UPDATE users SET userstocks =" + usableStocksString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	fmt.Println("Stocks allocated");
 
 	
 
