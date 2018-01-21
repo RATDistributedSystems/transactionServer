@@ -184,6 +184,8 @@ func sell(){
 	var usableStocks int
 	var stockname string
 	var stockamount int
+	var usid string
+	var hasStock bool
 
 	//check if user has enough stocks for a SELL
 	
@@ -197,22 +199,26 @@ func sell(){
 	}
 	*/
 	
-	iter := session.Query("SELECT stockname FROM userstocks WHERE userid='Jones'").Iter()
-	for iter.Scan(&stockname, &stockamount) {
-		print("inside iter")
-		fmt.Println("STOCKS: ", stockname, stockamount)
+	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='Jones'").Iter()
+	for iter.Scan(&usid, &stockname, &stockamount) {
+		if (stockname == stock){
+			hasStock = true
+			break;
+
+		}
+		//fmt.Println("STOCKS: ", stockname, stockamount)
 	}
 	if err := iter.Close(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	fmt.Println("\n" + userId);
-	/*
-	if err := session.Query("select stockamount from userstocks where userid='" + userId + "' and stockname='" + stock + "'").Scan(&usableStocks); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+	println(hasStock)
+	if (!hasStock){
+		session.Close()
+		return
 	}
-	*/
-
-
+	fmt.Println(stockname, stockamount)
+	fmt.Println("\n" + userId);
+	usableStocks = stockamount
 	fmt.Println(usableStocks);
 	
 	//if not close the session
@@ -221,14 +227,15 @@ func sell(){
 		return
 	}
 	var sellableStocks int = sellStockDollars/stockValue
+	print(sellableStocks)
 	//if has enough stock for desired sell amount, set aside stocks from db
 	usableStocks = usableStocks - sellableStocks;
 	usableStocksString := strconv.FormatInt(int64(usableStocks),10)
 	pendingCash := sellableStocks * stockValue;
 	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
-	fmt.Println("Available Cash is greater than buy amount");
-	if err := session.Query("UPDATE users SET userstocks =" + usableStocksString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+	fmt.Println("Available Stocks is greater than sell amount");
+	if err := session.Query("UPDATE userstocks SET stockamount =" + usableStocksString + " WHERE usid=" + usid).Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	fmt.Println("Stocks allocated");
@@ -237,7 +244,7 @@ func sell(){
 
 	//make a record of the new transaction
 
-	if err := session.Query("INSERT INTO pendingtransactions (uid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
+	if err := session.Query("INSERT INTO pendingtransactions (pid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
