@@ -8,6 +8,7 @@ import "github.com/gocql/gocql"
 import "strconv"
 import "github.com/go-redis/redis"
 import "github.com/twinj/uuid"
+import "time"
 //import "log"
 
 
@@ -38,7 +39,7 @@ func selectCommand(text string){
 	}
 	if text == "sell\n"{
 		fmt.Print("sell Test")
-		sell()
+		//sell()
 	}
 }
 
@@ -67,7 +68,7 @@ func createSession(){
 
 
 func addUser(){
-	cluster := gocql.NewCluster("192.168.1.131")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -85,9 +86,54 @@ func addUser(){
 	defer session.Close()
 }
 
+//checks the state and runs only after a buy or sell to check if the UUID of a transaction is expired or NOT
+//this is needed to return the allocated money in the case the transaction automatically expires
+//waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
+func updateState(operation INT, uuid String, userId String){
+
+	timer1 := time.NewTimer(time.Second * 62)
+
+	<-timer1.C
+    fmt.Println("Timer1 has expired")
+		fmt.Println("User Cash will be returned")
+
+		if operation == 1 {
+			var userId String
+			var pendingCash INT
+			var usableCash INT
+			var totalCash INT
+
+			//obtain value remaining for expired transaction
+			if err := session.Query("select pendingCash from pendingtransactions where pid='" + uuid + "'").Scan(&pendingCash); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+			//delete pending transaction
+			if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+			//obtain current users bank account value
+			if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+
+			//add back accout value to pending cash
+			totalCash = pendingCash + usableCash;
+
+			//return total money to user
+			if err := session.Query("UPDATE users SET usableCash =" + totalCash + " WHERE userid='" + userId + "'").Exec(); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+
+		}
+
+
+
+
+}
+
 func buy(){
 	//userid,stocksymbol,amount
-	cluster := gocql.NewCluster("192.168.1.131")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -142,29 +188,16 @@ func buy(){
 
 	//---**************---------insert userid and pid into the redis database to start decrementing the transaction-------*********---------
 
-	client := redis.NewClient(&redis.Options{
-    Network:  "tcp",
-    Addr:     "localhost:6379",
-    Password: "",
-    DB:       0,
-	})
 
-	//set a 60 second TTL in redis for this key value
-	err = client.Set(f, "1", 60000000000).Err()
-	if err != nil {
-		panic(err)
-	}
+	// NEED TO HAVE SMOETHING TO CHECK WHEN THE 60 seconds is up to return the money back and alert the user
 
-	val, err := client.Get(f).Result()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(f, val)
+	//run update function to check if the buy command has expired
+	go updateState(1, f, userId);
 
 
 	defer session.Close()
 }
-
+/*
 func sell(){
 	//userid,stocksymbol,amount
 	cluster := gocql.NewCluster("192.168.1.131")
@@ -206,7 +239,7 @@ func sell(){
 	}
 	fmt.Println("Stocks allocated");
 
-	
+
 
 	//make a record of the new transaction
 
@@ -221,3 +254,4 @@ func sell(){
 func deleteSession(){
 
 }
+*/
