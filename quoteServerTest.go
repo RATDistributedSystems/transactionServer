@@ -37,7 +37,7 @@ func selectCommand(text string){
 		buy()
 	}
 	if text == "sell\n"{
-		fmt.Print("sell Test")
+		fmt.Println("sell Test")
 		sell()
 	}
 }
@@ -166,8 +166,8 @@ func buy(){
 }
 
 func sell(){
-	//userid,stocksymbol,amount
-	cluster := gocql.NewCluster("192.168.1.131")
+//userid,stocksymbol,amount
+	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -177,18 +177,44 @@ func sell(){
 
 	var userId string = "Jones"
 	var sellStockDollars int = 200
-	var stock string = "abs"
+	var stock string = "abc"
 	var operation string = "true"
 	var committed string = "false"
 	var stockValue int = 20
 	var usableStocks int
+	var stockname string
+	var stockamount int
 
 	//check if user has enough stocks for a SELL
-	if err := session.Query("select userId, userstocks from users where userid='" + userId + "'").Scan(&userId, &usableStocks); err != nil {
+	
+	if err := session.Query("select userId from users where userid='" + userId + "'").Scan(&userId); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	/*
+	if err := session.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), 'Jones', 20, 'abc')").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	*/
+	
+	iter := session.Query("SELECT stockname FROM userstocks WHERE userid='Jones'").Iter()
+	for iter.Scan(&stockname, &stockamount) {
+		print("inside iter")
+		fmt.Println("STOCKS: ", stockname, stockamount)
+	}
+	if err := iter.Close(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	fmt.Println("\n" + userId);
+	/*
+	if err := session.Query("select stockamount from userstocks where userid='" + userId + "' and stockname='" + stock + "'").Scan(&usableStocks); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	*/
+
+
 	fmt.Println(usableStocks);
+	
 	//if not close the session
 	if  (stockValue*usableStocks) < sellStockDollars{
 		session.Close()
@@ -200,6 +226,7 @@ func sell(){
 	usableStocksString := strconv.FormatInt(int64(usableStocks),10)
 	pendingCash := sellableStocks * stockValue;
 	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
+	stockValueString := strconv.FormatInt(int64(stockValue), 10)
 	fmt.Println("Available Cash is greater than buy amount");
 	if err := session.Query("UPDATE users SET userstocks =" + usableStocksString + " WHERE userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -210,7 +237,7 @@ func sell(){
 
 	//make a record of the new transaction
 
-	if err := session.Query("INSERT INTO pendingtransactions (uid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValue + ")").Exec(); err != nil {
+	if err := session.Query("INSERT INTO pendingtransactions (uid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
