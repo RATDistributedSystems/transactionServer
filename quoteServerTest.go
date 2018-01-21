@@ -6,6 +6,8 @@ import "bufio"
 import "os"
 import "github.com/gocql/gocql"
 import "strconv"
+import "github.com/go-redis/redis"
+import "github.com/twinj/uuid"
 //import "log"
 
 
@@ -73,7 +75,7 @@ func addUser(){
 	//if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('Jones', 351) IF NOT EXISTS").Exec(); err != nil {
 	//	panic(fmt.Sprintf("problem creating session", err))
 	//}
-	if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('Jones', 351)").Exec(); err != nil {
+	if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('Jones', 9000)").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	defer session.Close()
@@ -120,13 +122,40 @@ func buy(){
 	}
 	fmt.Println("Cash allocated");
 
-	
+
 
 	//make a record of the new transaction
 
-	if err := session.Query("INSERT INTO pendingtransactions (uid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValue + ")").Exec(); err != nil {
+	u := uuid.NewV4()
+	f := uuid.Formatter(u, uuid.FormatCanonical)
+
+	fmt.Println(f)
+
+	stockValueString := strconv.FormatInt(int64(stockValue), 10)
+	if err := session.Query("INSERT INTO pendingtransactions (pid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (" + f + ", " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
+
+	//---**************---------insert userid and pid into the redis database to start decrementing the transaction-------*********---------
+
+	client := redis.NewClient(&redis.Options{
+    Network:  "tcp",
+    Addr:     "localhost:6379",
+    Password: "",
+    DB:       0,
+	})
+
+	//set a 60 second TTL in redis for this key value
+	err = client.Set(f, "1", 60000000000).Err()
+	if err != nil {
+		panic(err)
+	}
+
+	val, err := client.Get(f).Result()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(f, val)
 
 
 	defer session.Close()
