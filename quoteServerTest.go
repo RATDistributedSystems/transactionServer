@@ -6,7 +6,7 @@ import "bufio"
 import "os"
 import "github.com/gocql/gocql"
 import "strconv"
-import "github.com/go-redis/redis"
+//import "github.com/go-redis/redis"
 import "github.com/twinj/uuid"
 import "time"
 //import "log"
@@ -89,7 +89,15 @@ func addUser(){
 //checks the state and runs only after a buy or sell to check if the UUID of a transaction is expired or NOT
 //this is needed to return the allocated money in the case the transaction automatically expires
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
-func updateState(operation INT, uuid String, userId String){
+func updateState(operation int, uuid string, userId string){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
 
 	timer1 := time.NewTimer(time.Second * 62)
 
@@ -98,10 +106,10 @@ func updateState(operation INT, uuid String, userId String){
 		fmt.Println("User Cash will be returned")
 
 		if operation == 1 {
-			var userId String
-			var pendingCash INT
-			var usableCash INT
-			var totalCash INT
+			var userId string
+			var pendingCash int
+			var usableCash int
+			var totalCash int
 
 			//obtain value remaining for expired transaction
 			if err := session.Query("select pendingCash from pendingtransactions where pid='" + uuid + "'").Scan(&pendingCash); err != nil {
@@ -119,16 +127,14 @@ func updateState(operation INT, uuid String, userId String){
 			//add back accout value to pending cash
 			totalCash = pendingCash + usableCash;
 
+			totalCashString := strconv.FormatInt(int64(totalCash), 10)
+
 			//return total money to user
-			if err := session.Query("UPDATE users SET usableCash =" + totalCash + " WHERE userid='" + userId + "'").Exec(); err != nil {
+			if err := session.Query("UPDATE users SET usableCash =" + totalCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
 
 		}
-
-
-
-
 }
 
 func buy(){
@@ -226,7 +232,7 @@ func sell(){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	/*
+
 	if err := session.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), 'Jones', 20, 'abc')").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
@@ -288,4 +294,3 @@ func sell(){
 func deleteSession(){
 
 }
-*/
