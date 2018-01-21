@@ -197,7 +197,7 @@ func buy(){
 
 	defer session.Close()
 }
-/*
+
 func sell(){
 //userid,stocksymbol,amount
 	cluster := gocql.NewCluster("192.168.0.111")
@@ -230,7 +230,7 @@ func sell(){
 	if err := session.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), 'Jones', 20, 'abc')").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	*/
+
 
 	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='Jones'").Iter()
 	for iter.Scan(&usid, &stockname, &stockamount) {
