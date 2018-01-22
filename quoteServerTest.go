@@ -200,12 +200,13 @@ func updateStateSell(uuid string, usid string){
     fmt.Println("Timer1 has expired")
 	fmt.Println("User stocks will be returned")
 
+	var pendingCash int
 	var pendingStocks int
 	var currentStocks int
 	var totalStocks int
 
 	//obtain number of stocks for expired transaction
-	if err := session.Query("select stockvalue from pendingtransactions where pid='" + uuid + "'").Scan(&pendingStocks); err != nil {
+	if err := session.Query("select pendingcash, stockvalue from pendingtransactions where pid='" + uuid + "'").Scan(&pendingCash, &pendingStocks); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
@@ -219,7 +220,8 @@ func updateStateSell(uuid string, usid string){
 	}
 
 	//add back stocks to stocks
-	totalStocks = pendingStocks + currentStocks
+	stocks := pendingCash/pendingStocks
+	totalStocks = stocks + currentStocks
 	totalStocksString := strconv.FormatInt(int64(totalStocks), 10)
 
 	//return total stocks to the userstocks
@@ -519,6 +521,58 @@ func commitSell(userId string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
+}
+
+func cancelSell(userId string){
+	cluster := gocql.NewCluster("192.168.0.111")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var uuid string
+	var pendingCash int
+	var pendingStock int
+	var stock string
+	var usid string
+	var stockname string
+	var stockamount int
+	var totalStocks int
+	var stocks int
+
+	//obtain stocks and number of stocks for cancelled transaction
+	if err := session.Query("select uuid, pendingcash, stock, stockvalue from pendingtransactions where userId='" + userId + "'").Scan(&uuid, &pendingCash, &stock, &pendingStock, ); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//get current user stocks
+	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='Jones'").Iter()
+	for iter.Scan(&usid, &stockname, &stockamount) {
+		if (stockname == stock){
+			break;
+
+		}
+	}
+	if err := iter.Close(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//convert stock value to stock amount
+	stocks = pendingCash/pendingStock
+	totalStocks =  stocks + stockamount
+	totalStocksString := strconv.FormatInt(int64(totalStocks),10)
+
+	//return user stocks
+	if err := session.Query("UPDATE userstocks SET stockamount =" + totalStocksString + " WHERE usid=" + usid).Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//delete pending transaction
+	if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
 }
 
 func deleteSession(){
