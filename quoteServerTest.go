@@ -89,7 +89,7 @@ func addUser(){
 //checks the state and runs only after a buy or sell to check if the UUID of a transaction is expired or NOT
 //this is needed to return the allocated money in the case the transaction automatically expires
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
-func updateState(operation int, uuid string, userId string){
+func updateStateBuy(operation int, uuid string, userId string){
 
 	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
@@ -300,7 +300,7 @@ func buy(){
 	// NEED TO HAVE SMOETHING TO CHECK WHEN THE 60 seconds is up to return the money back and alert the user
 
 	//run update function to check if the buy command has expired
-	go updateState(1, f, userId);
+	go updateStateBuy(1, f, userId);
 
 
 	defer session.Close()
