@@ -331,10 +331,6 @@ func commitBuy(userId string){
 
 }
 
-func commitSell(){
-	
-}
-
 func buy(){
 	//userid,stocksymbol,amount
 	cluster := gocql.NewCluster("192.168.0.111")
@@ -413,7 +409,7 @@ func sell(){
 	}
 
 	var userId string = "Jones"
-	var sellStockDollars int = 200
+	var sellStockDollars int = 160
 	var stock string = "abc"
 	var operation string = "true"
 	var committed string = "false"
@@ -484,6 +480,45 @@ func sell(){
 	go updateStateSell(f, usid)
 
 	defer session.Close()
+}
+
+func commitSell(userId string){
+	cluster := gocql.NewCluster("192.168.0.111")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var uuid string
+	var pendingCash int
+	var usableCash int
+
+	//get pending cash to be added to user account
+	if err := session.Query("select uuid, pendingCash from pendingtransactions where userId='" + userId + "'").Scan(&uuid, &pendingCash); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//get current users cash
+	if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//add available cash to leftover cash
+	usableCash = usableCash + pendingCash
+	usableCashString := strconv.FormatInt(int64(usableCash), 10)
+
+	//re input the new cash value in to the user db
+	if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//delete the pending transcation
+	if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
 }
 
 func deleteSession(){
