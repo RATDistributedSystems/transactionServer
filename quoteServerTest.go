@@ -68,7 +68,7 @@ func createSession(){
 
 
 func addUser(){
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -91,7 +91,7 @@ func addUser(){
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
 func updateState(operation int, uuid string, userId string){
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -137,9 +137,53 @@ func updateState(operation int, uuid string, userId string){
 		}
 }
 
+func updateStateSell(uuid string, usid string){
+	cluster := gocql.NewCluster("192.168.0.111")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	print("In update sell")
+	timer1 := time.NewTimer(time.Second * 62)
+
+	<-timer1.C
+    fmt.Println("Timer1 has expired")
+	fmt.Println("User stocks will be returned")
+
+	var pendingStocks int
+	var currentStocks int
+	var totalStocks int
+
+	//obtain number of stocks for expired transaction
+	if err := session.Query("select stockvalue from pendingtransactions where pid='" + uuid + "'").Scan(&pendingStocks); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//delete pending transaction
+	if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	//get current users stock amount
+	if err := session.Query("select stockamount from userstocks where usid="+usid).Scan(&currentStocks); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//add back stocks to stocks
+	totalStocks = pendingStocks + currentStocks
+	totalStocksString := strconv.FormatInt(int64(totalStocks), 10)
+
+	//return total stocks to the userstocks
+	if err := session.Query("UPDATE userstocks SET stockamount =" + totalStocksString + " WHERE usid=" + usid).Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+}
+
 func commitBuy(userId string){
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -239,9 +283,13 @@ func commitBuy(userId string){
 
 }
 
+func commitSell(){
+	
+}
+
 func buy(){
 	//userid,stocksymbol,amount
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -334,12 +382,6 @@ func sell(){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-
-	if err := session.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), 'Jones', 20, 'abc')").Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
-
-
 	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='Jones'").Iter()
 	for iter.Scan(&usid, &stockname, &stockamount) {
 		if (stockname == stock){
@@ -382,13 +424,16 @@ func sell(){
 	fmt.Println("Stocks allocated");
 
 
-
+	u := uuid.NewV4()
+	f := uuid.Formatter(u, uuid.FormatCanonical)
+	fmt.Println(f)
 	//make a record of the new transaction
 
-	if err := session.Query("INSERT INTO pendingtransactions (pid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (uuid(), " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
+	if err := session.Query("INSERT INTO pendingtransactions (pid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (" + f + ", " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-
+	print("going to updateStateSell")
+	go updateStateSell(f, usid)
 
 	defer session.Close()
 }
