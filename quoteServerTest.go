@@ -46,7 +46,7 @@ func commandListener(){
 
 		if result[0] == "SELL"{
 			fmt.Println(len(result))
-			//sell(result[0],result[1],result[2],result[3])
+			sell(result[1],result[2],result[3])
 		}
 
 		if result[0] == "SELL"{
@@ -81,7 +81,7 @@ func selectCommand(text string){
 	}
 	if text == "sell\n"{
 		fmt.Println("sell Test")
-		sell()
+		//sell()
 	}
 }
 
@@ -248,12 +248,12 @@ func updateStateSell(uuid string, usid string){
 	var totalStocks int
 
 	//obtain number of stocks for expired transaction
-	if err := session.Query("select pendingcash, stockvalue from pendingtransactions where pid='" + uuid + "'").Scan(&pendingCash, &pendingStocks); err != nil {
+	if err := session.Query("select pendingcash, stockvalue from pendingtransactions where pid=" + uuid).Scan(&pendingCash, &pendingStocks); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
 	//delete pending transaction
-	if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+	if err := session.Query("delete from pendingtransactions where pid=" + uuid).Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	//get current users stock amount
@@ -453,7 +453,7 @@ func buy(userId string, stock string, pendingCashString string){
 	defer session.Close()
 }
 
-func sell(){
+func sell(userId string, stock string, sellStockDollarsString string){
 //userid,stocksymbol,amount
 	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
@@ -463,17 +463,21 @@ func sell(){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	var userId string = "Jones"
-	var sellStockDollars int = 160
-	var stock string = "abc"
+	//var userId string = "Jones"
+	sellStockDollars := stringToCents(sellStockDollarsString)
+	//var stock string = "abc"
 	var operation string = "true"
 	var committed string = "false"
-	var stockValue int = 20
+	var stockValue int
 	var usableStocks int
 	var stockname string
 	var stockamount int
 	var usid string
 	var hasStock bool
+
+	message := quoteRequest(userId, stock)
+	fmt.Println(message[0])
+	stockValue = stringToCents(message[0])
 
 	//check if user has enough stocks for a SELL
 
@@ -509,6 +513,7 @@ func sell(){
 		return
 	}
 	var sellableStocks int = sellStockDollars/stockValue
+	print("total sellable stocks ")
 	print(sellableStocks)
 	//if has enough stock for desired sell amount, set aside stocks from db
 	usableStocks = usableStocks - sellableStocks;
