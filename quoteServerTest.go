@@ -29,13 +29,12 @@ func commandListener(){
 		if strings.Contains(text, "ADD"){
 			result := processCommand(text)
 			fmt.Println(len(result))
-			//addUser(result[0],result[1],result[2])
+			addUser(result[1],result[2])
 		}
 		if strings.Contains(text, "QUOTE"){
 			result := processCommand(text)
 			fmt.Println(len(result))
-			//quoteRequest(result[0],result[1],result[2])
-
+			quoteRequest(result[1],result[2])
 		}
 		if strings.Contains(text, "BUY"){
 			result := processCommand(text)
@@ -74,11 +73,11 @@ func selectCommand(text string){
 	fmt.Print(text)
 	if text == "quote\n"{
 		fmt.Print("quoteTest")
-		quoteRequest()
+		//quoteRequest()
 	}
 	if text == "adduser\n"{
 		fmt.Print("addUser Test")
-		addUser()
+		//addUser()
 	}
 
 	if text == "buy\n"{
@@ -91,18 +90,24 @@ func selectCommand(text string){
 	}
 }
 
-func quoteRequest(){
+func quoteRequest(userId string, stockSymbol string) string{
 	// connect to this socket
 	conn, _ := net.Dial("tcp", "192.168.0.133:3333")
 		// read in input from stdin
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		text, _ := reader.ReadString('\n')
+		//reader := bufio.NewReader(os.Stdin)
+		//fmt.Print("Text to send: ")
+		//text, _ := reader.ReadString('\n')
+		stockSymbol = strings.TrimSuffix(stockSymbol, "\n")
+		userId = strings.TrimSuffix(userId, "\n")
+		text := stockSymbol + "," + userId
+		fmt.Print(text)
 		// send to socket
 		fmt.Fprintf(conn, text + "\n")
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: "+message)
+
+		return message
 }
 
 func createSession(){
@@ -114,8 +119,42 @@ func createSession(){
 	*/
 }
 
+func stringToCents(x string) int{
 
-func addUser(){
+	var dollars int
+	var cents int
+
+	fmt.Println(x)
+	result := strings.Split(x, ".")
+	for i := range result {
+		fmt.Println(result[i])
+	}
+
+	if i, err := strconv.Atoi(result[0]); err == nil {
+		dollars = i
+		fmt.Println("dollar converted to int")
+		fmt.Println(i)
+	}
+
+	result[1] = strings.TrimSuffix(result[1], "\n")
+	if e, err := strconv.Atoi(result[1]); err == nil {
+		cents = e
+		fmt.Println("cents converted to int")
+		fmt.Println(e)
+	}
+
+	dollars = dollars * 100
+	var money int = dollars + cents
+
+	return money
+}
+
+
+func addUser(userId string, usableCashString string){
+
+	usableCash := stringToCents(usableCashString)
+	fmt.Println(usableCash)
+
 	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
@@ -124,11 +163,13 @@ func addUser(){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
+	usableCashString = strconv.FormatInt(int64(usableCash), 10)
 
 	//if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('Jones', 351) IF NOT EXISTS").Exec(); err != nil {
 	//	panic(fmt.Sprintf("problem creating session", err))
 	//}
-	if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('Jones', 9000)").Exec(); err != nil {
+
+	if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	defer session.Close()
