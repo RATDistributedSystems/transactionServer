@@ -39,7 +39,7 @@ func commandListener(){
 		if strings.Contains(text, "BUY"){
 			result := processCommand(text)
 			fmt.Println(len(result))
-			//buy(result[0],result[1],result[2],result[3])
+			buy(result[1],result[2],result[3])
 
 		}
 		if strings.Contains(text, "BUY_COMMIT"){
@@ -82,7 +82,7 @@ func selectCommand(text string){
 
 	if text == "buy\n"{
 		fmt.Print("buy Test")
-		buy()
+		//buy()
 	}
 	if text == "sell\n"{
 		fmt.Println("sell Test")
@@ -90,7 +90,7 @@ func selectCommand(text string){
 	}
 }
 
-func quoteRequest(userId string, stockSymbol string) string{
+func quoteRequest(userId string, stockSymbol string) []string{
 	// connect to this socket
 	conn, _ := net.Dial("tcp", "192.168.0.133:3333")
 		// read in input from stdin
@@ -107,7 +107,9 @@ func quoteRequest(userId string, stockSymbol string) string{
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: "+message)
 
-		return message
+		messageArray := strings.Split(message, ",")
+
+		return messageArray
 }
 
 func createSession(){
@@ -187,24 +189,26 @@ func updateStateBuy(operation int, uuid string, userId string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	timer1 := time.NewTimer(time.Second * 62)
+	timer1 := time.NewTimer(time.Second * 12)
 
 	<-timer1.C
     fmt.Println("Timer1 has expired")
 		fmt.Println("User Cash will be returned")
 
 		if operation == 1 {
-			var userId string
+			fmt.Println("starting operation 1")
 			var pendingCash int
 			var usableCash int
 			var totalCash int
 
+
 			//obtain value remaining for expired transaction
-			if err := session.Query("select pendingCash from pendingtransactions where pid='" + uuid + "'").Scan(&pendingCash); err != nil {
+			if err := session.Query("select pendingCash from pendingtransactions where pid=" + uuid + "").Scan(&pendingCash); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
+
 			//delete pending transaction
-			if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+			if err := session.Query("delete from pendingtransactions where pid=" + uuid + "").Exec(); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
 			//obtain current users bank account value
@@ -214,7 +218,6 @@ func updateStateBuy(operation int, uuid string, userId string){
 
 			//add back accout value to pending cash
 			totalCash = pendingCash + usableCash;
-
 			totalCashString := strconv.FormatInt(int64(totalCash), 10)
 
 			//return total money to user
@@ -371,8 +374,9 @@ func commitBuy(userId string){
 
 }
 
-func buy(){
+func buy(userId string, stock string, pendingCashString string){
 	//userid,stocksymbol,amount
+
 	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
@@ -381,14 +385,18 @@ func buy(){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	var userId string = "Jones"
+	pendingCash := stringToCents(pendingCashString)
+	//var userId string = "Jones"
 	//cash to spend in total for a stock
-	var pendingCash int = 200
-	var stock string = "abs"
+	//var pendingCash int = 200
+	//var stock string = "abs"
 	var operation string = "true"
 	var committed string = "false"
-	var stockValue int = 20
+	var stockValue int
 	var usableCash int
+
+	message := quoteRequest(userId, stock)
+	fmt.Println(message[0])
 
 	//check if user has enough money for a BUY
 	if err := session.Query("select userId, usableCash from users where userid='" + userId + "'").Scan(&userId, &usableCash); err != nil {
@@ -405,7 +413,7 @@ func buy(){
 	//if has enough cash subtract and set aside from db
 	usableCash = usableCash - pendingCash;
 	usableCashString := strconv.FormatInt(int64(usableCash), 10)
-	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
+	pendingCashString = strconv.FormatInt(int64(pendingCash), 10)
 	fmt.Println("Available Cash is greater than buy amount");
 	if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
