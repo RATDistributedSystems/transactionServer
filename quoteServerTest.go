@@ -45,13 +45,12 @@ func commandListener(){
 		}
 
 		if result[0] == "SELL"{
-			fmt.Println(len(result))
 			sell(result[1],result[2],result[3])
 		}
 
-		if result[0] == "SELL"{
+		if result[0] == "SELL_COMMIT"{
 			fmt.Println(len(result))
-			//sell(result[0],result[1],result[2],result[3])
+			commitSell(result[1])
 		}
 	}
 }
@@ -248,12 +247,12 @@ func updateStateSell(uuid string, usid string){
 	var totalStocks int
 
 	//obtain number of stocks for expired transaction
-	if err := session.Query("select pendingcash, stockvalue from pendingtransactions where pid=" + uuid).Scan(&pendingCash, &pendingStocks); err != nil {
+	if err := session.Query("select pendingcash, stockvalue from sellpendingtransactions where pid=" + uuid).Scan(&pendingCash, &pendingStocks); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
 	//delete pending transaction
-	if err := session.Query("delete from pendingtransactions where pid=" + uuid).Exec(); err != nil {
+	if err := session.Query("delete from sellpendingtransactions where pid=" + uuid).Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	//get current users stock amount
@@ -466,8 +465,6 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	//var userId string = "Jones"
 	sellStockDollars := stringToCents(sellStockDollarsString)
 	//var stock string = "abc"
-	var operation string = "true"
-	var committed string = "false"
 	var stockValue int
 	var usableStocks int
 	var stockname string
@@ -531,9 +528,12 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	u := uuid.NewV4()
 	f := uuid.Formatter(u, uuid.FormatCanonical)
 	fmt.Println(f)
+
+	//tm := time.Now()
+
 	//make a record of the new transaction
 
-	if err := session.Query("INSERT INTO pendingtransactions (pid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (" + f + ", " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
+	if err := session.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue, posttime) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ", toUnixTimestamp(now()))").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	print("going to updateStateSell")
@@ -556,8 +556,12 @@ func commitSell(userId string){
 	var usableCash int
 
 	//get pending cash to be added to user account
-	if err := session.Query("select uuid, pendingCash from pendingtransactions where userId='" + userId + "'").Scan(&uuid, &pendingCash); err != nil {
+	if err := session.Query("select pid,pendingcash from sellpendingtransactions where userid='" + userId + "'").Scan(&uuid, &pendingCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	if uuid == "" {
+		return
 	}
 
 	//get current users cash
@@ -575,7 +579,7 @@ func commitSell(userId string){
 	}
 
 	//delete the pending transcation
-	if err := session.Query("delete from pendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
+	if err := session.Query("delete from sellpendingtransactions where pid='" + uuid + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
