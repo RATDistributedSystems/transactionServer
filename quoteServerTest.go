@@ -137,6 +137,108 @@ func updateState(operation int, uuid string, userId string){
 		}
 }
 
+func commitBuy(userId string){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var pendingCash int
+	var buyingstockName string
+	var stockValue int
+	var buyableStocks int
+	var remainingCash int
+	var usableCash int
+
+
+	if err := session.Query("select stock, stockValue, pendingCash from pendingtransactions where userId='" + userId + "'").Scan(&buyingstockName, &stockValue, &pendingCash); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var usid string
+	var ownedstockname string
+	var stockamount int
+	var hasStock bool
+
+	//check if user currently owns any of this stock
+	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "").Iter()
+	for iter.Scan(&usid, &ownedstockname, &stockamount) {
+		if (ownedstockname == buyingstockName){
+			hasStock = true
+			break;
+		}
+		//fmt.Println("STOCKS: ", stockname, stockamount)
+	}
+	if err := iter.Close(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	if hasStock == true{
+
+		//calculate amount of stocks can be bought
+		buyableStocks = pendingCash / stockValue
+		buyableStocks = buyableStocks + stockamount
+		//remaining money
+		remainingCash = pendingCash - (buyableStocks * stockValue)
+
+		buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
+
+		//insert new stock record
+		if err := session.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE usid='" + usid + "'").Exec(); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+
+		//check users available cash
+		if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+
+		//add available cash to leftover cash
+		usableCash = usableCash + remainingCash
+		usableCashString := strconv.FormatInt(int64(usableCash), 10)
+
+		//re input the new cash value in to the user db
+		if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+
+	} else {
+		//IF USE DOESNT OWN ANY OF THIS STOCK
+		//calculate amount of stocks can be bought
+		buyableStocks = pendingCash / stockValue
+		//remaining money
+		remainingCash = pendingCash - (buyableStocks * stockValue)
+
+		buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
+
+		//insert new stock record
+		if err := session.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", '" + buyingstockName + "')").Exec(); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+
+		//check users available cash
+		if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+
+		//add available cash to leftover cash
+		usableCash = usableCash + remainingCash
+		usableCashString := strconv.FormatInt(int64(usableCash), 10)
+
+		//re input the new cash value in to the user db
+		if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+
+	}
+
+
+}
+
 func buy(){
 	//userid,stocksymbol,amount
 	cluster := gocql.NewCluster("localhost")
