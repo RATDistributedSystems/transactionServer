@@ -26,37 +26,32 @@ func commandListener(){
 		text, _ := reader.ReadString('\n')
 		fmt.Println(text)
 
-		if strings.Contains(text, "ADD"){
-			result := processCommand(text)
-			fmt.Println(len(result))
+		result := processCommand(text)
+
+		if result[0] == "ADD"{
 			addUser(result[1],result[2])
 		}
-		if strings.Contains(text, "QUOTE"){
-			result := processCommand(text)
-			fmt.Println(len(result))
+
+		if result[0] == "QUOTE"{
 			quoteRequest(result[1],result[2])
 		}
-		if strings.Contains(text, "BUY"){
-			result := processCommand(text)
-			fmt.Println(len(result))
+
+		if result[0] == "BUY"{
 			buy(result[1],result[2],result[3])
-
 		}
-		if strings.Contains(text, "BUY_COMMIT"){
-			result := processCommand(text)
-			fmt.Println(len(result))
-			//commitBuy(result[0],result[1])
 
+		if result[0] == "BUY_COMMIT"{
+			commitBuy(result[1])
 		}
-		if strings.Contains(text, "SELL"){
-			result := processCommand(text)
+
+		if result[0] == "SELL"{
 			fmt.Println(len(result))
 			//sell(result[0],result[1],result[2],result[3])
 		}
-		if strings.Contains(text, "SELL_COMMIT"){
-			result := processCommand(text)
-			fmt.Println(len(result))
 
+		if result[0] == "SELL"{
+			fmt.Println(len(result))
+			//sell(result[0],result[1],result[2],result[3])
 		}
 	}
 }
@@ -181,7 +176,7 @@ func addUser(userId string, usableCashString string){
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
 func updateStateBuy(operation int, uuid string, userId string){
 
-	cluster := gocql.NewCluster("192.168.0.111")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -189,7 +184,7 @@ func updateStateBuy(operation int, uuid string, userId string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	timer1 := time.NewTimer(time.Second * 12)
+	timer1 := time.NewTimer(time.Second * 8)
 
 	<-timer1.C
     fmt.Println("Timer1 has expired")
@@ -205,6 +200,10 @@ func updateStateBuy(operation int, uuid string, userId string){
 			//obtain value remaining for expired transaction
 			if err := session.Query("select pendingCash from pendingtransactions where pid=" + uuid + "").Scan(&pendingCash); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
+			}
+
+			if pendingCash == 0{
+				return
 			}
 
 			//delete pending transaction
@@ -399,13 +398,19 @@ func buy(userId string, stock string, pendingCashString string){
 
 	message := quoteRequest(userId, stock)
 	fmt.Println(message[0])
+	stockValueQuoteString := message[0]
+	stockValue = stringToCents(stockValueQuoteString)
+
 
 	//check if user has enough money for a BUY
 	if err := session.Query("select userId, usableCash from users where userid='" + userId + "'").Scan(&userId, &usableCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	fmt.Println("\n" + userId);
+	fmt.Println("usableCash");
 	fmt.Println(usableCash);
+	fmt.Println("pendingCash");
+	fmt.Println(pendingCash);
 	//if not close the session
 	if usableCash < pendingCash{
 		session.Close()
