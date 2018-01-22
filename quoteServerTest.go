@@ -6,6 +6,7 @@ import "bufio"
 import "os"
 import "github.com/gocql/gocql"
 import "strconv"
+import "strings"
 //import "github.com/go-redis/redis"
 import "github.com/twinj/uuid"
 import "time"
@@ -15,11 +16,58 @@ import "time"
 
 func main(){
 	fmt.Println("WebServer Test Connection")
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter text: ")
-	text, _ := reader.ReadString('\n')
-	fmt.Println(text)
-	selectCommand(text);
+	commandListener();
+}
+
+func commandListener(){
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Enter a command: ")
+		text, _ := reader.ReadString('\n')
+		fmt.Println(text)
+
+		if strings.Contains(text, "ADD"){
+			result := processCommand(text)
+			fmt.Println(len(result))
+			//addUser(result[0],result[1],result[2])
+		}
+		if strings.Contains(text, "QUOTE"){
+			result := processCommand(text)
+			fmt.Println(len(result))
+			//quoteRequest(result[0],result[1],result[2])
+
+		}
+		if strings.Contains(text, "BUY"){
+			result := processCommand(text)
+			fmt.Println(len(result))
+			//buy(result[0],result[1],result[2],result[3])
+
+		}
+		if strings.Contains(text, "BUY_COMMIT"){
+			result := processCommand(text)
+			fmt.Println(len(result))
+			//commitBuy(result[0],result[1])
+
+		}
+		if strings.Contains(text, "SELL"){
+			result := processCommand(text)
+			fmt.Println(len(result))
+			//sell(result[0],result[1],result[2],result[3])
+		}
+		if strings.Contains(text, "SELL_COMMIT"){
+			result := processCommand(text)
+			fmt.Println(len(result))
+
+		}
+	}
+}
+
+func processCommand(text string) []string{
+	result := strings.Split(text, ",")
+	for i := range result {
+		fmt.Println(result[i])
+	}
+	return result;
 }
 
 func selectCommand(text string){
@@ -89,7 +137,7 @@ func addUser(){
 //checks the state and runs only after a buy or sell to check if the UUID of a transaction is expired or NOT
 //this is needed to return the allocated money in the case the transaction automatically expires
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
-func updateState(operation int, uuid string, userId string){
+func updateStateBuy(operation int, uuid string, userId string){
 
 	cluster := gocql.NewCluster("192.168.0.111")
 	cluster.Keyspace = "userdb"
@@ -348,7 +396,7 @@ func buy(){
 	// NEED TO HAVE SMOETHING TO CHECK WHEN THE 60 seconds is up to return the money back and alert the user
 
 	//run update function to check if the buy command has expired
-	go updateState(1, f, userId);
+	go updateStateBuy(1, f, userId);
 
 
 	defer session.Close()
