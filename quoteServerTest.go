@@ -12,11 +12,82 @@ import "github.com/twinj/uuid"
 import "time"
 //import "log"
 
+const (
+    CONN_HOST = "192.168.0.133"
+    CONN_PORT = "3333"
+    CONN_TYPE = "tcp"
+)
+
+func tcpListener(){
+	// Listen for incoming connections.
+	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	if err != nil {
+			fmt.Println("Error listening:", err.Error())
+			os.Exit(1)
+	}
+	// Close the listener when the application closes.
+	defer l.Close()
+	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	for {
+			// Listen for an incoming connection.
+			conn, err := l.Accept()
+			if err != nil {
+					fmt.Println("Error accepting: ", err.Error())
+					os.Exit(1)
+			}
+			// Handle connections in a new goroutine.
+			go handleRequest(conn)
+	}
+}
+
+func handleRequest(conn net.Conn) {
+  // will listen for message to process ending in newline (\n)
+    print("received request")
+    message, _ := bufio.NewReader(conn).ReadString('\n')
+    //remove new line character and any spaces received
+    message = strings.TrimSuffix(message, "\n")
+    message = strings.TrimSpace(message)
+		commandExecuter(message)
+  	conn.Close()
+}
 
 
 func main(){
 	fmt.Println("WebServer Test Connection")
+	//for accepting TCP connections and executing a command
+	//tcpListener();
 	commandListener();
+}
+
+
+func commandExecuter(command string){
+		result := processCommand(command)
+
+		if result[0] == "ADD"{
+			addUser(result[1],result[2])
+		}
+
+		if result[0] == "QUOTE"{
+			quoteRequest(result[1],result[2])
+		}
+
+		if result[0] == "BUY"{
+			buy(result[1],result[2],result[3])
+		}
+
+		if result[0] == "BUY_COMMIT"{
+			commitBuy(result[1])
+		}
+
+		if result[0] == "SELL"{
+			fmt.Println(len(result))
+			sell(result[1],result[2],result[3])
+		}
+
+		if result[0] == "SELL"{
+			fmt.Println(len(result))
+			//sell(result[0],result[1],result[2],result[3])
+		}
 }
 
 func commandListener(){
@@ -53,6 +124,16 @@ func commandListener(){
 			fmt.Println(len(result))
 			//sell(result[0],result[1],result[2],result[3])
 		}
+
+		if result[0] == "SET_BUY_AMOUNT"{
+			fmt.Println(len(result))
+			setBuyAmount(result[1],result[2],result[3])
+		}
+
+		if result[0] == "SET_BUY_TRIGGER"{
+			fmt.Println(len(result))
+			setBuyTrigger(result[1],result[2],result[3])
+		}
 	}
 }
 
@@ -64,6 +145,8 @@ func processCommand(text string) []string{
 	return result;
 }
 
+//depricated - no longer used
+//manually select function to test
 func selectCommand(text string){
 	fmt.Print(text)
 	if text == "quote\n"{
@@ -87,7 +170,7 @@ func selectCommand(text string){
 
 func quoteRequest(userId string, stockSymbol string) []string{
 	// connect to this socket
-	conn, _ := net.Dial("tcp", "192.168.0.133:3333")
+	conn, _ := net.Dial("tcp", "192.168.3.102:3333")
 		// read in input from stdin
 		//reader := bufio.NewReader(os.Stdin)
 		//fmt.Print("Text to send: ")
@@ -273,6 +356,37 @@ func updateStateSell(uuid string, usid string){
 
 }
 
+func cancelBuy(userId string){
+	cluster := gocql.NewCluster("192.168.0.111")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+	var pendingCash int
+	var usableCash int
+	var totalCash int
+
+	//grab usableCash of the user
+	if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//retrieve pending cash from most recent buy transaction
+	if err := session.Query("select pendingCash from pendingtransactions where userId='" + userId + "'").Scan(&pendingCash); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	totalCash = pendingCash + usableCash;
+	totalCashString := strconv.FormatInt(int64(totalCash), 10)
+
+	if err := session.Query("UPDATE users SET usableCash =" + totalCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+}
+
 func commitBuy(userId string){
 
 	cluster := gocql.NewCluster("localhost")
@@ -451,6 +565,280 @@ func buy(userId string, stock string, pendingCashString string){
 
 
 	defer session.Close()
+}
+
+//sets aside the amount of money user wants to spend on a given stock
+//executes prior to setTriggerValue
+func setBuyAmount(userId string, stock string, pendingCashString string){
+
+	//create session with cass database
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//Verify that use funds is greater than amount attempting to spend
+
+
+	//Usable Cash is stored as cents
+	var usableCash int
+
+
+	//convert pendingCash from string to int of cents
+	pendingCash := stringToCents(pendingCashString)
+
+
+	if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+		panic(fmt.Sprintf("problem getting usable cash form users", err))
+	}
+
+	//Verify the pending cash vs the usable cash
+	fmt.Println("\n" + userId)
+	fmt.Println("usableCash")
+	fmt.Println(usableCash)
+	fmt.Println("pendingCash")
+	fmt.Println(pendingCash)
+
+	//if the user doesnt have enough funds cancel the allocation
+	if usableCash < pendingCash{
+		fmt.Println("Not enough money for this transaction")
+		session.Close()
+		return
+	}
+
+	//allocate cash after being verified
+	usableCash = usableCash - pendingCash;
+	usableCashString := strconv.FormatInt(int64(usableCash), 10)
+	pendingCashString = strconv.FormatInt(int64(pendingCash), 10)
+	fmt.Println("Available Cash is greater than buy amount")
+	if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem getting allocating user funds", err))
+	}
+	fmt.Println("Cash allocated")
+
+	//Create an entry in the "Triggers" table to keep track of the initial buy amount setting
+
+	//generate UUID to input as a unique value
+	u := uuid.NewV4()
+	f := uuid.Formatter(u, uuid.FormatCanonical)
+
+	//buy operation flag
+	var operation string = "true"
+
+	if err := session.Query("INSERT INTO triggers (tid, operation, pendingCash, stock, userid) VALUES (" + f + ", " + operation + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
+		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+	}
+
+	defer session.Close()
+
+}
+
+//Set maxmimum price of a stock before the stock gets auto bought
+func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//convert trigger price from string to int cents
+	stockPriceTrigger := stringToCents(stockPriceTriggerString)
+	fmt.Println(stockPriceTrigger);
+
+	stockPriceTriggerString = strconv.FormatInt(int64(stockPriceTrigger), 10)
+
+	//set the triggerValue and create thread to check the quote server
+
+	if err := session.Query("UPDATE triggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem setting trigger", err))
+	}
+
+	go checkBuyTrigger(userId, stock, stockPriceTrigger)
+
+}
+
+func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	for {
+		//check the quote server every 5 seconds
+		timer1 := time.NewTimer(time.Second * 5)
+		<-timer1.C
+
+		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+
+		message := quoteRequest(userId, stock)
+		currentStockPrice := stringToCents(message[0])
+
+		fmt.Println("Trigger value")
+		fmt.Println(stockPriceTrigger)
+		fmt.Println("quote price")
+		fmt.Println(currentStockPrice)
+
+		//execute the buy instantly if trigger condition is true
+		if(currentStockPrice <= stockPriceTrigger){
+
+			var usableCash int
+			var pendingCash int
+			stockValue := currentStockPrice
+			var remainingCash int
+			var usid string
+			var ownedstockname string
+			var stockamount int
+			var hasStock bool
+
+			//check if user currently owns any of this stock
+			iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
+			for iter.Scan(&usid, &ownedstockname, &stockamount) {
+				if (ownedstockname == stock){
+					hasStock = true
+					break;
+				}
+			}
+			if err := iter.Close(); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+
+
+			//If the user has some stock, add it to currently owned
+			if hasStock == true{
+
+				//grab pendingCash for the buy trigger
+				if err := session.Query("SELECT pendingCash FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
+					panic(fmt.Sprintf("problem getting usable cash form users", err))
+				}
+
+				//calculate amount of stocks can be bought
+				buyableStocks := pendingCash / stockValue
+				buyableStocks = buyableStocks + stockamount
+				//remaining money
+				remainingCash = pendingCash - (buyableStocks * stockValue)
+
+				buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
+
+
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+
+
+
+
+
+				//insert new stock record
+				if err := session.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE usid=" + usid + "").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				//check users available cash
+				if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				//add available cash to leftover cash
+				usableCash = usableCash + remainingCash
+				usableCashString := strconv.FormatInt(int64(usableCash), 10)
+
+				//re input the new cash value in to the user db
+				if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				if err := session.Query("DELETE FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				return
+
+			} else {
+
+				//get pending cash in the trigger
+				if err := session.Query("SELECT pendingCash FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
+					panic(fmt.Sprintf("problem getting usable cash form users", err))
+				}
+
+				//IF USE DOESNT OWN ANY OF THIS STOCK
+				//calculate amount of stocks can be bought
+				buyableStocks := pendingCash / stockValue
+				fmt.Println("buyable stock amount")
+				fmt.Println(buyableStocks)
+				//remaining money
+				remainingCash = pendingCash - (buyableStocks * stockValue)
+
+				buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
+
+				fmt.Println("buyable stock string amount")
+				fmt.Println(buyableStocksString)
+
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+
+
+
+				//insert new stock record
+				if err := session.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", '" + stock + "')").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				//check users available cash
+				if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				//add available cash to leftover cash
+				usableCash = usableCash + remainingCash
+				usableCashString := strconv.FormatInt(int64(usableCash), 10)
+
+				//re input the new cash value in to the user db
+				if err := session.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				if err := session.Query("DELETE FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				return
+
+			}
+		}
+	}
+}
+
+//cancel any buy triggers as well as buy_sell_amounts
+func cancelBuyTrigger(userId string, stock string){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	if err := session.Query("DELETE FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
 }
 
 func sell(userId string, stock string, sellStockDollarsString string){
