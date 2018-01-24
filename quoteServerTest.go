@@ -232,10 +232,39 @@ func stringToCents(x string) int{
 	return money
 }
 
+func addFunds(userId string, addCashAmount int){
+
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var usableCash int
+
+	if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	totalCash := usableCash + addCashAmount;
+	totalCashString := strconv.FormatInt(int64(totalCash), 10)
+
+	//return add funds to user
+	if err := session.Query("UPDATE users SET usableCash =" + totalCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+}
+
 
 func addUser(userId string, usableCashString string){
 
+
 	usableCash := stringToCents(usableCashString)
+
 	fmt.Println(usableCash)
 	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
@@ -243,6 +272,25 @@ func addUser(userId string, usableCashString string){
 	session, err := cluster.CreateSession()
 	if err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var count int
+
+	if err := session.Query("SELECT count(*) FROM users WHERE userid='" + userId + "'").Scan(&count); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//if the user already exists add money to the account
+	if count != 0{
+
+		addFunds(userId, usableCash)
+
+	//if the user doesnt exist create a new user
+	}else{
+
+		if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}	
 	}
 
 	usableCashString = strconv.FormatInt(int64(usableCash), 10)
@@ -631,10 +679,10 @@ func setBuyAmount(userId string, stock string, pendingCashString string){
 	f := uuid.Formatter(u, uuid.FormatCanonical)
 
 	//buy operation flag
-	var operation string = "true"
+	//var operation string = "true"
 
-	if err := session.Query("INSERT INTO triggers (tid, operation, pendingCash, stock, userid) VALUES (" + f + ", " + operation + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
-		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+	if err := session.Query("INSERT INTO buyTriggers (tid, pendingCash, stock, userid) VALUES (" + f + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
+		panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
 	}
 
 	defer session.Close()
@@ -660,7 +708,7 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
 
 	//set the triggerValue and create thread to check the quote server
 
-	if err := session.Query("UPDATE triggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+	if err := session.Query("UPDATE buyTriggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem setting trigger", err))
 	}
 
@@ -668,8 +716,39 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
 
 }
 
+//check if the trigger hasn't been cancelled
+func checkTriggerExists(userId string, stock string, operation bool) bool{
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var count int
+
+	if operation == true {
+		if err := session.Query("SELECT count(*) buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
+			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
+		}
+	}else{
+		if err := session.Query("SELECT count(*) sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
+			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
+		}
+	}
+
+	if count == 1 {
+		return true
+	}else{
+		return false
+	}
+}
+
 func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 
+	operation := true
 	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
@@ -683,10 +762,14 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 		timer1 := time.NewTimer(time.Second * 5)
 		<-timer1.C
 
-		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-		//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
+		//if the trigger doesnt exist exit
+
+		exists := checkTriggerExists(userId, stock, operation)
+		if exists == false{
+			return
+		}
+
+
 
 		message := quoteRequest(userId, stock)
 		currentStockPrice := stringToCents(message[0])
@@ -725,7 +808,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 			if hasStock == true{
 
 				//grab pendingCash for the buy trigger
-				if err := session.Query("SELECT pendingCash FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
+				if err := session.Query("SELECT pendingCash FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
 					panic(fmt.Sprintf("problem getting usable cash form users", err))
 				}
 
@@ -738,13 +821,11 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 				buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
 
 
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-
-
-
+				//if the trigger doesnt exist exit
+				exists := checkTriggerExists(userId, stock, operation)
+				if exists == false{
+					return
+				}
 
 
 				//insert new stock record
@@ -766,7 +847,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 
-				if err := session.Query("DELETE FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+				if err := session.Query("DELETE FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 
@@ -775,7 +856,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 			} else {
 
 				//get pending cash in the trigger
-				if err := session.Query("SELECT pendingCash FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
+				if err := session.Query("SELECT pendingCash FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
 					panic(fmt.Sprintf("problem getting usable cash form users", err))
 				}
 
@@ -792,11 +873,11 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 				fmt.Println("buyable stock string amount")
 				fmt.Println(buyableStocksString)
 
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-				//CHECK IF TRIGGER IS STILL VALID AND HASNT BEEN DELETED WITHIN THE TIME OF EXECUTION----------------------------
-
+				//if the trigger doesnt exist exit
+				exists := checkTriggerExists(userId, stock, operation)
+				if exists == false{
+					return
+				}
 
 
 				//insert new stock record
@@ -818,7 +899,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 
-				if err := session.Query("DELETE FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+				if err := session.Query("DELETE FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 
@@ -840,11 +921,82 @@ func cancelBuyTrigger(userId string, stock string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	if err := session.Query("DELETE FROM triggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+	if err := session.Query("DELETE FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+}
+
+
+//sets the total cash to gain from selling a stock
+func setSellAmount(userId string, stock string, pendingCashString string){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
+	pendingCashCents := stringToCents(pendingCashString)
+	//check if user owns stock
+	ownedStockAmount := checkStockOwnership(userId, stock)
+
+	if(ownedStockAmount == 0){
+		fmt.Println("Cannot Sell a stock you don't own")
+		return
+	}
+
+	pendingCashString = strconv.FormatInt(int64(pendingCashCents), 10)
+
+	//create trigger to sell a certain amount of the stock
+	u := uuid.NewV4()
+	f := uuid.Formatter(u, uuid.FormatCanonical)
+
+	//Create new entry for the sell trigger with the sell amount
+	if err := session.Query("INSERT INTO sellTriggers (tid, pendingCash, stock, userid) VALUES (" + f + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
+		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+	}
 }
+
+func setSellTrigger(userId string, stock string, stockSellPrice string){
+
+	//stockSellPriceCents := stringToCents(stockSellPrice)
+
+
+}
+
+func checkStockOwnership(userId string, stock string) int{
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+
+	var ownedstockname string
+	var ownedstockamount int
+	//var hasStock bool
+
+	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
+	for iter.Scan(&ownedstockname, &ownedstockamount) {
+		if (ownedstockname == stock){
+			//hasStock = true
+			break;
+		}
+	}
+	if err := iter.Close(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	//returns 0 if stock is empty
+	return ownedstockamount
+	
+}
+
 
 func sell(userId string, stock string, sellStockDollarsString string){
 //userid,stocksymbol,amount
