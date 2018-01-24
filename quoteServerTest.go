@@ -370,7 +370,7 @@ func updateStateSell(userId string, uuid string, usid string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 	print("In update sell")
-	timer1 := time.NewTimer(time.Second * 5)
+	timer1 := time.NewTimer(time.Second * 62)
 
 	<-timer1.C
     fmt.Println("Timer1 has expired")
