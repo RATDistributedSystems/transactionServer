@@ -13,8 +13,8 @@ import "time"
 //import "log"
 
 const (
-    CONN_HOST = "192.168.0.133"
-    CONN_PORT = "3333"
+    CONN_HOST = "134.87.152.32"
+    CONN_PORT = "44441"
     CONN_TYPE = "tcp"
 )
 
@@ -56,8 +56,8 @@ func main(){
 	uuid.Init()
 	fmt.Println("WebServer Test Connection")
 	//for accepting TCP connections and executing a command
-	//tcpListener();
-	commandListener();
+	tcpListener();
+	//commandListener();
 }
 
 
@@ -80,17 +80,58 @@ func commandExecuter(command string){
 			commitBuy(result[1])
 		}
 
+		if result[0] == "CANCEL_BUY"{
+			cancelBuy(result[1])
+		}
+
 		if result[0] == "SELL"{
-			fmt.Println(len(result))
 			sell(result[1],result[2],result[3])
 		}
 
-		if result[0] == "SELL"{
+		if result[0] == "SELL_COMMIT"{
 			fmt.Println(len(result))
-			//sell(result[0],result[1],result[2],result[3])
+			commitSell(result[1])
 		}
 
+		if result[0] == "CANCEL_SELL"{
+			cancelSell(result[1])
+		}
 
+		if result[0] == "SET_BUY_AMOUNT"{
+			fmt.Println(len(result))
+			setBuyAmount(result[1],result[2],result[3])
+		}
+
+		if result[0] == "SET_BUY_TRIGGER"{
+			fmt.Println(len(result))
+			setBuyTrigger(result[1],result[2],result[3])
+		}
+
+		if result[0] == "SET_SELL_AMOUNT"{
+			fmt.Println(len(result))
+			setSellAmount(result[1],result[2],result[3])
+		}
+
+		if result[0] == "SET_SELL_TRIGGER"{
+			fmt.Println(len(result))
+			setSellTrigger(result[1],result[2],result[3])
+		}
+		if result[0] == "CANCEL_SELL_TRIGGER"{
+			fmt.Println(len(result))
+			cancelSellTrigger(result[1],result[2])
+		}
+		if result[0] == "CANCEL_BUY_TRIGGER"{
+			fmt.Println(len(result))
+			cancelBuyTrigger(result[1],result[2])
+		}
+
+		if result[0] == "DUMPLOG"{
+			if len(result) == 3{
+				dumpUser(result[1],result[2])
+			} else if len(result) == 2{
+				dump(result[1])
+			}
+		}
 }
 
 func commandListener(){
@@ -316,6 +357,34 @@ func stringToCents(x string) int{
 	return money
 }
 
+//chekcs if the command can be executed
+//ie check if buy set before commit etc
+func checkDependency(command string, userId string, stock string){
+	if command == "COMMIT_BUY"{
+		//check if a buy entry exists in buypendingtransactions table
+
+	}
+	if command == "COMMIT_SELL"{
+		//check if a sell entry exists in sellpendingtransactions table
+		
+	}
+	if command == "CANCEL_BUY"{
+		//check if a buy entry exists in buypendingtransactions table
+		
+	}
+	if command == "CANCEL_SELL"{
+		//check if a sell entry exists in sellpendingtransactions table
+		
+	}
+	if command == "CANCEL_SET_BUY"{
+
+		
+	}
+	if command == "CANCEL_SET_SELL"{
+		
+	}
+}
+
 func addFunds(userId string, addCashAmount int){
 
 
@@ -350,7 +419,7 @@ func addUser(userId string, usableCashString string){
 	usableCash := stringToCents(usableCashString)
 
 	fmt.Println(usableCash)
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -366,26 +435,28 @@ func addUser(userId string, usableCashString string){
 
 	//if the user already exists add money to the account
 	if count != 0{
-
+		fmt.Println("adding funds to user")
 		addFunds(userId, usableCash)
+
 
 	//if the user doesnt exist create a new user
 	}else{
-
+		fmt.Println("creating new user")
+		usableCashString = strconv.FormatInt(int64(usableCash), 10)
 		if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
 			panic(fmt.Sprintf("problem creating session", err))
 		}	
 	}
 
-	usableCashString = strconv.FormatInt(int64(usableCash), 10)
+	//usableCashString = strconv.FormatInt(int64(usableCash), 10)
 
 	//if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('Jones', 351) IF NOT EXISTS").Exec(); err != nil {
 	//	panic(fmt.Sprintf("problem creating session", err))
 	//}
 
-	if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
+	//if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
+	//	panic(fmt.Sprintf("problem creating session", err))
+	//}
 	defer session.Close()
 }
 
@@ -394,7 +465,7 @@ func addUser(userId string, usableCashString string){
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
 func updateStateBuy(operation int, uuid string, userId string){
 
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -455,7 +526,7 @@ func updateStateBuy(operation int, uuid string, userId string){
 }
 
 func updateStateSell(userId string, uuid string, usid string){
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -466,7 +537,7 @@ func updateStateSell(userId string, uuid string, usid string){
 	timer1 := time.NewTimer(time.Second * 62)
 
 	<-timer1.C
-    fmt.Println("Timer1 has expired")
+    fmt.Println("Timer1 has expired for SELL command")
 	fmt.Println("User stocks will be returned")
 
 	var pendingCash int
@@ -513,7 +584,7 @@ func updateStateSell(userId string, uuid string, usid string){
 }
 
 func cancelBuy(userId string){
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -552,7 +623,7 @@ func cancelBuy(userId string){
 
 func commitBuy(userId string){
 
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -662,7 +733,7 @@ func commitBuy(userId string){
 func buy(userId string, stock string, pendingCashString string){
 	//userid,stocksymbol,amount
 
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -739,7 +810,7 @@ func buy(userId string, stock string, pendingCashString string){
 func setBuyAmount(userId string, stock string, pendingCashString string){
 
 	//create session with cass database
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -806,7 +877,7 @@ func setBuyAmount(userId string, stock string, pendingCashString string){
 //Set maxmimum price of a stock before the stock gets auto bought
 func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
 
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -863,7 +934,7 @@ func checkTriggerExists(userId string, stock string, operation bool) bool{
 func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 
 
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	operation := true
 
 	cluster.Keyspace = "userdb"
@@ -1029,7 +1100,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 //cancel any buy triggers as well as buy_sell_amounts
 func cancelBuyTrigger(userId string, stock string){
 
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1156,7 +1227,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int){
 		message := quoteRequest(userId, stock)
 		currentStockPrice := stringToCents(message[0])
 
-		if currentStockPrice < stockSellPriceCents{
+		if currentStockPrice > stockSellPriceCents{
 
 			//Check how many stocks the user can sell
 
@@ -1264,7 +1335,7 @@ func checkStockOwnership(userId string, stock string) (int, string){
 
 func sell(userId string, stock string, sellStockDollarsString string){
 //userid,stocksymbol,amount
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1285,8 +1356,8 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	message := quoteRequest(userId, stock)
 
 
-	timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
+	//timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	//go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
 	fmt.Println(message[0])
 	stockValue = stringToCents(message[0])
 
@@ -1345,8 +1416,8 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	//tm := time.Now()
 
 	//make a record of the new transaction
-	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	go logUserEvent(timestamp_command, "TS1", "1", "SELL", userId, stock, sellStockDollarsString)
+	//timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	//go logUserEvent(timestamp_command, "TS1", "1", "SELL", userId, stock, sellStockDollarsString)
 
 	if err := session.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -1358,8 +1429,17 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	defer session.Close()
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+//----------------------commit sell function needs to subtract the sold stocks from the userStocks row-------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
 func commitSell(userId string){
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1400,6 +1480,8 @@ func commitSell(userId string){
 			panic(fmt.Sprintf("problem creating session", err))
 	}
 
+
+
 	//delete the pending transcation
 	if err := session.Query("delete from sellpendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -1408,7 +1490,7 @@ func commitSell(userId string){
 }
 
 func cancelSell(userId string){
-	cluster := gocql.NewCluster("192.168.3.103")
+	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
