@@ -137,6 +137,23 @@ func commandListener(){
 			fmt.Println(len(result))
 			setBuyTrigger(result[1],result[2],result[3])
 		}
+		if result[0] == "SET_SELL_AMOUNT"{
+			fmt.Println(len(result))
+			setSellAmount(result[1],result[2],result[3])
+		}
+
+		if result[0] == "SET_SELL_TRIGGER"{
+			fmt.Println(len(result))
+			setSellTrigger(result[1],result[2],result[3])
+		}
+		if result[0] == "CANCEL_SELL_TRIGGER"{
+			fmt.Println(len(result))
+			cancelSellTrigger(result[1],result[2])
+		}
+		if result[0] == "CANCEL_BUY_TRIGGER"{
+			fmt.Println(len(result))
+			cancelBuyTrigger(result[1],result[2])
+		}
 	}
 }
 
@@ -173,7 +190,7 @@ func selectCommand(text string){
 
 func quoteRequest(userId string, stockSymbol string) []string{
 	// connect to this socket
-	conn, _ := net.Dial("tcp", "192.168.3.102:3333")
+	conn, _ := net.Dial("tcp", "localhost:3333")
 		// read in input from stdin
 		//reader := bufio.NewReader(os.Stdin)
 		//fmt.Print("Text to send: ")
@@ -730,11 +747,11 @@ func checkTriggerExists(userId string, stock string, operation bool) bool{
 	var count int
 
 	if operation == true {
-		if err := session.Query("SELECT count(*) buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
+		if err := session.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
 			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
 		}
 	}else{
-		if err := session.Query("SELECT count(*) sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
+		if err := session.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
 			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
 		}
 	}
@@ -921,11 +938,28 @@ func cancelBuyTrigger(userId string, stock string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
+	fmt.Println("cancelling buy trigger")
 	if err := session.Query("DELETE FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 }
 
+//cancels any sell triggers or sell amounts
+func cancelSellTrigger(userId string, stock string){
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	fmt.Println("cancelling sell trigger")
+	if err := session.Query("DELETE FROM sellTriggers WHERE userId='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+}
 
 //sets the total cash to gain from selling a stock
 func setSellAmount(userId string, stock string, pendingCashString string){
@@ -940,7 +974,8 @@ func setSellAmount(userId string, stock string, pendingCashString string){
 
 	pendingCashCents := stringToCents(pendingCashString)
 	//check if user owns stock
-	ownedStockAmount := checkStockOwnership(userId, stock)
+	ownedStockAmount, usid := checkStockOwnership(userId, stock)
+	fmt.Println(usid)
 
 	if(ownedStockAmount == 0){
 		fmt.Println("Cannot Sell a stock you don't own")
@@ -961,12 +996,141 @@ func setSellAmount(userId string, stock string, pendingCashString string){
 
 func setSellTrigger(userId string, stock string, stockSellPrice string){
 
-	//stockSellPriceCents := stringToCents(stockSellPrice)
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
 
+
+	stockSellPriceCents := stringToCents(stockSellPrice)
+	stockSellPriceCentsString := strconv.FormatInt(int64(stockSellPriceCents), 10)
+
+	//check if set sell amount is set for this particular stock
+	var count int
+	if err := session.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId +"' AND stock='" + stock + "' ").Scan(&count); err != nil{
+		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+	}
+
+	//if set sell amount isnt set return
+	if count == 0 {
+		fmt.Println("No set Sell amount placed")
+		return
+	}
+
+	//update database entry with trigger value
+	if err := session.Query("UPDATE sellTriggers SET triggerValue=" + stockSellPriceCentsString + " WHERE userid='" + userId +"' AND stock='" + stock + "' ").Exec(); err != nil{
+		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+	}
+
+	go checkSellTrigger(userId, stock, stockSellPriceCents)
+}
+
+
+func checkSellTrigger(userId string, stock string, stockSellPriceCents int){
+
+	operation := false
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	for {
+		//check the quote server every 5 seconds
+		timer1 := time.NewTimer(time.Second * 5)
+		<-timer1.C
+
+		//if the trigger doesnt exist exit
+
+		exists := checkTriggerExists(userId, stock, operation)
+		if exists == false{
+			return
+		}
+
+		//retrieve current stock price
+		message := quoteRequest(userId, stock)
+		currentStockPrice := stringToCents(message[0])
+
+		if currentStockPrice < stockSellPriceCents{
+
+			//Check how many stocks the user can sell
+
+			var pendingCash int
+
+			if err := session.Query("SELECT pendingCash FROM sellTriggers WHERE userid='" + userId +"' AND stock='" + stock + "' ").Scan(&pendingCash); err != nil{
+				panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+			}
+
+			//calculate amount of stocks can be sold
+			sellAbleStocksMax := pendingCash / currentStockPrice
+
+			//check how many stocks the user owns
+			ownedStocks, usid := checkStockOwnership(userId, stock)
+
+			//check how many stocks the user can sell
+			var sellAbleStocks int
+			var remainingStocks int
+
+			//check if user has more owned stocks than able to sell
+			if sellAbleStocksMax < ownedStocks{
+				sellAbleStocks = sellAbleStocksMax
+				remainingStocks = ownedStocks - sellAbleStocks
+
+				//calculate money gained from stocks selling
+				sellAbleStockPrice := pendingCash - (sellAbleStocksMax * currentStockPrice)
+
+				remainingStocksString := strconv.FormatInt(int64(remainingStocks),10)
+
+				//update userStock database with new about of stock
+				if err := session.Query("UPDATE userstocks SET stockamount =" + remainingStocksString + " WHERE usid=" + usid ).Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				//increase money in userAccount
+				addFunds(userId, sellAbleStockPrice)
+
+				//delete trigger
+
+				 
+
+				if err := session.Query("DELETE FROM sellTriggers WHERE userId='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+			}else{
+				//Case where user does not own enough stocks to sell the maximum amount
+				//user must sell the most it can
+				sellAbleStocks = ownedStocks
+
+				//ownedStocksString, err := strconv.Atoi("ownedStocks")
+
+				sellAbleStockPrice := pendingCash - (sellAbleStocks * currentStockPrice)
+				remainingCash := pendingCash - sellAbleStockPrice
+				sellAbleStockPrice = sellAbleStockPrice + remainingCash
+
+				addFunds(userId, sellAbleStockPrice)
+
+				if err := session.Query("DELETE FROM userstocks WHERE usid=" + usid ).Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+
+				//delete trigger
+				if err := session.Query("DELETE FROM sellTriggers WHERE userId=" + userId + " AND stock='" + stock + "'").Exec(); err != nil {
+					panic(fmt.Sprintf("problem creating session", err))
+				}
+			}
+		}
+
+	}
 
 }
 
-func checkStockOwnership(userId string, stock string) int{
+func checkStockOwnership(userId string, stock string) (int, string){
 
 	cluster := gocql.NewCluster("localhost")
 	cluster.Keyspace = "userdb"
@@ -979,10 +1143,11 @@ func checkStockOwnership(userId string, stock string) int{
 
 	var ownedstockname string
 	var ownedstockamount int
+	var usid string
 	//var hasStock bool
 
 	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
-	for iter.Scan(&ownedstockname, &ownedstockamount) {
+	for iter.Scan(&usid, &ownedstockname, &ownedstockamount) {
 		if (ownedstockname == stock){
 			//hasStock = true
 			break;
@@ -993,7 +1158,7 @@ func checkStockOwnership(userId string, stock string) int{
 	}
 
 	//returns 0 if stock is empty
-	return ownedstockamount
+	return ownedstockamount, usid
 	
 }
 
