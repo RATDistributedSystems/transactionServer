@@ -396,7 +396,16 @@ func updateStateBuy(operation int, uuid string, userId string){
 			var pendingCash int
 			var usableCash int
 			var totalCash int
+			var count int
 
+			//check if remaining transaction still exists
+			if err := session.Query("select count(*) from buypendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+
+			if count == 0 {
+				return;
+			}
 
 			//obtain value remaining for expired transaction
 			if err := session.Query("select pendingCash from buypendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&pendingCash); err != nil {
@@ -447,8 +456,18 @@ func updateStateSell(userId string, uuid string, usid string){
 	var pendingStocks int
 	var currentStocks int
 	var totalStocks int
-	fmt.Println(usid)
-	fmt.Println(uuid)
+	//fmt.Println(usid)
+	//fmt.Println(uuid)
+	var count int
+
+	//check if remaining transaction still exists
+	if err := session.Query("select count(*) from sellpendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	if count == 0 {
+		return;
+	}
 
 	//obtain number of stocks for expired transaction
 	if err := session.Query("select pendingcash, stockvalue from sellpendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&pendingCash, &pendingStocks); err != nil {
