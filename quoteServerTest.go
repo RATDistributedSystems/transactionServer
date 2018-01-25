@@ -209,11 +209,17 @@ func quoteRequest(userId string, stockSymbol string) []string{
 		return messageArray
 }
 
-func logUserEvent(time string, server string, transactionNum string, command string, userid string, funds string){
+func logUserEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string){
 	//connect to audit server
 	fmt.Println("In log user Event")
 	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
-	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + funds
+	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func logQuoteEvent(time string, server string, transactionNum string, price string, stockSymbol string, userid string, quoteservertime string, cryptokey string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "Quote" + "," + time + "," + server + "," + transactionNum + "," + price + "," + stockSymbol + "," + userid + "," + quoteservertime + "," + cryptokey
 	fmt.Fprintf(conn,text + "\n") 
 }
 
@@ -1063,6 +1069,10 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	var hasStock bool
 
 	message := quoteRequest(userId, stock)
+
+
+	timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
 	fmt.Println(message[0])
 	stockValue = stringToCents(message[0])
 
@@ -1121,8 +1131,8 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	//tm := time.Now()
 
 	//make a record of the new transaction
-	timestamp := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	go logUserEvent(timestamp, "TS1", "1", "SELL", userId, sellStockDollarsString)
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SELL", userId, stock, sellStockDollarsString)
 
 	if err := session.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
