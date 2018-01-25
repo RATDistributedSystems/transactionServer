@@ -89,6 +89,8 @@ func commandExecuter(command string){
 			fmt.Println(len(result))
 			//sell(result[0],result[1],result[2],result[3])
 		}
+
+
 }
 
 func commandListener(){
@@ -142,6 +144,15 @@ func commandListener(){
 			fmt.Println(len(result))
 			setBuyTrigger(result[1],result[2],result[3])
 		}
+
+		if result[0] == "DUMP"{
+			if len(result) == 2{
+				dumpUser(result[1])
+			} else {
+
+			}
+		}
+
 	}
 }
 
@@ -178,7 +189,7 @@ func selectCommand(text string){
 
 func quoteRequest(userId string, stockSymbol string) []string{
 	// connect to this socket
-	conn, _ := net.Dial("tcp", "192.168.3.104:3333")
+	conn, _ := net.Dial("tcp", "192.168.3.102:3333")
 		// read in input from stdin
 		//reader := bufio.NewReader(os.Stdin)
 		//fmt.Print("Text to send: ")
@@ -196,6 +207,21 @@ func quoteRequest(userId string, stockSymbol string) []string{
 		messageArray := strings.Split(message, ",")
 
 		return messageArray
+}
+
+func logUserEvent(time string, server string, transactionNum string, command string, userid string, funds string){
+	//connect to audit server
+	fmt.Println("In log user Event")
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + funds
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func dumpUser(userId string){
+	fmt.Println("In Dump user")
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "DUMP" + "," + userId
+	fmt.Fprintf(conn,text + "\n") 
 }
 
 func createSession(){
@@ -764,12 +790,10 @@ func checkTriggerExists(userId string, stock string, operation bool) bool{
 
 func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 
-<<<<<<< HEAD
+
 	cluster := gocql.NewCluster("192.168.3.103")
-=======
 	operation := true
-	cluster := gocql.NewCluster("localhost")
->>>>>>> cc6ca3f9c264377374dc7a290b73a8fe8859b641
+
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1097,11 +1121,14 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	//tm := time.Now()
 
 	//make a record of the new transaction
+	timestamp := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp, "TS1", "1", "SELL", userId, sellStockDollarsString)
 
 	if err := session.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	print("going to updateStateSell")
+
+	
 	go updateStateSell(userId, f, usid)
 
 	defer session.Close()
