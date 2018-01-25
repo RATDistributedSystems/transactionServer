@@ -63,6 +63,7 @@ CREATE TABLE userdb.userstocks (
     AND min_index_interval = 128
     AND read_repair_chance = 0.0
     AND speculative_retry = '99PERCENTILE';
+CREATE INDEX ON userdb.userstocks (userid);
 
 CREATE TABLE userdb.buypendingtransactions (
     pid uuid,
