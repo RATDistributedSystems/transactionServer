@@ -145,11 +145,11 @@ func commandListener(){
 			setBuyTrigger(result[1],result[2],result[3])
 		}
 
-		if result[0] == "DUMP"{
-			if len(result) == 2{
-				dumpUser(result[1])
-			} else {
-
+		if result[0] == "DUMPLOG"{
+			if len(result) == 3{
+				dumpUser(result[1],result[2])
+			} else if len(result) == 2{
+				dump(result[1])
 			}
 		}
 
@@ -247,10 +247,16 @@ func logDebugEvent(time string, server string, transactionNum string, command st
 	fmt.Fprintf(conn,text + "\n") 
 }
 
-func dumpUser(userId string){
+func dumpUser(userId string, filename string){
 	fmt.Println("In Dump user")
 	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
-	text := "DUMP" + "," + userId
+	text := "DUMP" + "," + userId + "," + filename
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func dump(filename string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "DUMP" + "," + filename
 	fmt.Fprintf(conn,text + "\n") 
 }
 
