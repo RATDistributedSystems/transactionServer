@@ -53,6 +53,7 @@ func handleRequest(conn net.Conn) {
 
 
 func main(){
+	uuid.Init()
 	fmt.Println("WebServer Test Connection")
 	//for accepting TCP connections and executing a command
 	//tcpListener();
@@ -88,6 +89,8 @@ func commandExecuter(command string){
 			fmt.Println(len(result))
 			//sell(result[0],result[1],result[2],result[3])
 		}
+
+
 }
 
 func commandListener(){
@@ -115,6 +118,10 @@ func commandListener(){
 			commitBuy(result[1])
 		}
 
+		if result[0] == "CANCEL_BUY"{
+			cancelBuy(result[1])
+		}
+
 		if result[0] == "SELL"{
 			sell(result[1],result[2],result[3])
 		}
@@ -137,6 +144,7 @@ func commandListener(){
 			fmt.Println(len(result))
 			setBuyTrigger(result[1],result[2],result[3])
 		}
+
 		if result[0] == "SET_SELL_AMOUNT"{
 			fmt.Println(len(result))
 			setSellAmount(result[1],result[2],result[3])
@@ -153,6 +161,14 @@ func commandListener(){
 		if result[0] == "CANCEL_BUY_TRIGGER"{
 			fmt.Println(len(result))
 			cancelBuyTrigger(result[1],result[2])
+		}
+
+		if result[0] == "DUMPLOG"{
+			if len(result) == 3{
+				dumpUser(result[1],result[2])
+			} else if len(result) == 2{
+				dump(result[1])
+			}
 		}
 	}
 }
@@ -208,6 +224,57 @@ func quoteRequest(userId string, stockSymbol string) []string{
 		messageArray := strings.Split(message, ",")
 
 		return messageArray
+}
+
+func logUserEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string){
+	//connect to audit server
+	fmt.Println("In log user Event")
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func logQuoteEvent(time string, server string, transactionNum string, price string, stockSymbol string, userid string, quoteservertime string, cryptokey string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "Quote" + "," + time + "," + server + "," + transactionNum + "," + price + "," + stockSymbol + "," + userid + "," + quoteservertime + "," + cryptokey
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func logSystemEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "System" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func logAccountTransactionEvent(time string, server string, transactionNum string, action string, userid string, funds string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "Account" + "," + time + "," + server + "," + transactionNum + "," + action + "," + userid + "," + funds
+	fmt.Fprintf(conn,text + "\n") 	
+}
+
+func logErrorEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string, error string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds + "," + error
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func logDebugEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string, debug string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds + "," + debug
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func dumpUser(userId string, filename string){
+	fmt.Println("In Dump user")
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "DUMP" + "," + userId + "," + filename
+	fmt.Fprintf(conn,text + "\n") 
+}
+
+func dump(filename string){
+	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	text := "DUMP" + "," + filename
+	fmt.Fprintf(conn,text + "\n") 
 }
 
 func createSession(){
@@ -283,7 +350,7 @@ func addUser(userId string, usableCashString string){
 	usableCash := stringToCents(usableCashString)
 
 	fmt.Println(usableCash)
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -327,7 +394,7 @@ func addUser(userId string, usableCashString string){
 //waits for 62 seconds, checks the UUID parameter if it exists in the redis database, and if it doesnt it will revert the buy or sell command
 func updateStateBuy(operation int, uuid string, userId string){
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -335,7 +402,7 @@ func updateStateBuy(operation int, uuid string, userId string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	timer1 := time.NewTimer(time.Second * 8)
+	timer1 := time.NewTimer(time.Second * 62)
 
 	<-timer1.C
     fmt.Println("Timer1 has expired")
@@ -346,10 +413,19 @@ func updateStateBuy(operation int, uuid string, userId string){
 			var pendingCash int
 			var usableCash int
 			var totalCash int
+			var count int
 
+			//check if remaining transaction still exists
+			if err := session.Query("select count(*) from buypendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+
+			if count == 0 {
+				return;
+			}
 
 			//obtain value remaining for expired transaction
-			if err := session.Query("select pendingCash from pendingtransactions where pid=" + uuid + "").Scan(&pendingCash); err != nil {
+			if err := session.Query("select pendingCash from buypendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&pendingCash); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
 
@@ -358,7 +434,7 @@ func updateStateBuy(operation int, uuid string, userId string){
 			}
 
 			//delete pending transaction
-			if err := session.Query("delete from pendingtransactions where pid=" + uuid + "").Exec(); err != nil {
+			if err := session.Query("delete from buypendingtransactions where pid=" + uuid  + " and userid='" + userId + "'").Exec(); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
 			//obtain current users bank account value
@@ -379,7 +455,7 @@ func updateStateBuy(operation int, uuid string, userId string){
 }
 
 func updateStateSell(userId string, uuid string, usid string){
-	cluster := gocql.NewCluster("192.168.3.101")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -397,8 +473,18 @@ func updateStateSell(userId string, uuid string, usid string){
 	var pendingStocks int
 	var currentStocks int
 	var totalStocks int
-	fmt.Println(usid)
-	fmt.Println(uuid)
+	//fmt.Println(usid)
+	//fmt.Println(uuid)
+	var count int
+
+	//check if remaining transaction still exists
+	if err := session.Query("select count(*) from sellpendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	if count == 0 {
+		return;
+	}
 
 	//obtain number of stocks for expired transaction
 	if err := session.Query("select pendingcash, stockvalue from sellpendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&pendingCash, &pendingStocks); err != nil {
@@ -427,7 +513,7 @@ func updateStateSell(userId string, uuid string, usid string){
 }
 
 func cancelBuy(userId string){
-	cluster := gocql.NewCluster("192.168.0.111")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -437,6 +523,8 @@ func cancelBuy(userId string){
 	var pendingCash int
 	var usableCash int
 	var totalCash int
+	var uuid string
+	userId = strings.TrimSuffix(userId, "\n")
 
 	//grab usableCash of the user
 	if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
@@ -444,7 +532,7 @@ func cancelBuy(userId string){
 	}
 
 	//retrieve pending cash from most recent buy transaction
-	if err := session.Query("select pendingCash from pendingtransactions where userId='" + userId + "'").Scan(&pendingCash); err != nil {
+	if err := session.Query("select pid, pendingCash from buypendingtransactions where userId='" + userId + "'" + " LIMIT 1").Scan(&uuid, &pendingCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
@@ -455,11 +543,16 @@ func cancelBuy(userId string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
+	//delete pending transaction
+	if err := session.Query("delete from buypendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
 }
 
 func commitBuy(userId string){
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -473,9 +566,11 @@ func commitBuy(userId string){
 	var buyableStocks int
 	var remainingCash int
 	var usableCash int
+	var uuid string
+	userId = strings.TrimSuffix(userId, "\n")
 
 
-	if err := session.Query("select stock, stockValue, pendingCash from pendingtransactions where userId='" + userId + "'").Scan(&buyingstockName, &stockValue, &pendingCash); err != nil {
+	if err := session.Query("select pid, stock, stockValue, pendingCash from buypendingtransactions where userId='" + userId + "'").Scan(&uuid,&buyingstockName, &stockValue, &pendingCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
@@ -485,7 +580,7 @@ func commitBuy(userId string){
 	var hasStock bool
 
 	//check if user currently owns any of this stock
-	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "").Iter()
+	iter := session.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
 	for iter.Scan(&usid, &ownedstockname, &stockamount) {
 		if (ownedstockname == buyingstockName){
 			hasStock = true
@@ -508,7 +603,7 @@ func commitBuy(userId string){
 		buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
 
 		//insert new stock record
-		if err := session.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE usid='" + usid + "'").Exec(); err != nil {
+		if err := session.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE usid=" + usid).Exec(); err != nil {
 			panic(fmt.Sprintf("problem creating session", err))
 		}
 
@@ -556,13 +651,18 @@ func commitBuy(userId string){
 
 	}
 
+	//delete the pending transcation
+	if err := session.Query("delete from buypendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
 
 }
 
 func buy(userId string, stock string, pendingCashString string){
 	//userid,stocksymbol,amount
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -575,8 +675,6 @@ func buy(userId string, stock string, pendingCashString string){
 	//cash to spend in total for a stock
 	//var pendingCash int = 200
 	//var stock string = "abs"
-	var operation string = "true"
-	var committed string = "false"
 	var stockValue int
 	var usableCash int
 
@@ -615,13 +713,12 @@ func buy(userId string, stock string, pendingCashString string){
 
 	//make a record of the new transaction
 
-	u := uuid.NewV4()
+	u := uuid.NewV1()
 	f := uuid.Formatter(u, uuid.FormatCanonical)
-
 	fmt.Println(f)
 
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
-	if err := session.Query("INSERT INTO pendingtransactions (pid, committed, operation, userid, pendingCash, stock, stockValue) VALUES (" + f + ", " + committed + ", " + operation + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
+	if err := session.Query("INSERT INTO buypendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
@@ -642,7 +739,7 @@ func buy(userId string, stock string, pendingCashString string){
 func setBuyAmount(userId string, stock string, pendingCashString string){
 
 	//create session with cass database
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -709,7 +806,7 @@ func setBuyAmount(userId string, stock string, pendingCashString string){
 //Set maxmimum price of a stock before the stock gets auto bought
 func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -765,8 +862,10 @@ func checkTriggerExists(userId string, stock string, operation bool) bool{
 
 func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 
+
+	cluster := gocql.NewCluster("192.168.3.103")
 	operation := true
-	cluster := gocql.NewCluster("localhost")
+
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -930,7 +1029,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 //cancel any buy triggers as well as buy_sell_amounts
 func cancelBuyTrigger(userId string, stock string){
 
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1165,7 +1264,7 @@ func checkStockOwnership(userId string, stock string) (int, string){
 
 func sell(userId string, stock string, sellStockDollarsString string){
 //userid,stocksymbol,amount
-	cluster := gocql.NewCluster("192.168.3.101")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1184,6 +1283,10 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	var hasStock bool
 
 	message := quoteRequest(userId, stock)
+
+
+	timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
 	fmt.Println(message[0])
 	stockValue = stringToCents(message[0])
 
@@ -1231,9 +1334,6 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	}
 	fmt.Println("Stocks allocated");
 
-
-	uuid.Init()
-
 	u := uuid.NewV1()
 	/*
 	fmt.Println(id)
@@ -1245,18 +1345,21 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	//tm := time.Now()
 
 	//make a record of the new transaction
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SELL", userId, stock, sellStockDollarsString)
 
 	if err := session.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	print("going to updateStateSell")
+
+	
 	go updateStateSell(userId, f, usid)
 
 	defer session.Close()
 }
 
 func commitSell(userId string){
-	cluster := gocql.NewCluster("192.168.3.101")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
@@ -1305,7 +1408,7 @@ func commitSell(userId string){
 }
 
 func cancelSell(userId string){
-	cluster := gocql.NewCluster("192.168.3.101")
+	cluster := gocql.NewCluster("192.168.3.103")
 	cluster.Keyspace = "userdb"
 	cluster.ProtoVersion = 4
 	session, err := cluster.CreateSession()
