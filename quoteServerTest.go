@@ -383,6 +383,10 @@ func addUser(userId string, usableCashString string){
 	//	panic(fmt.Sprintf("problem creating session", err))
 	//}
 
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logAccountTransactionEvent(timestamp_command, "TS1", "1", "ADD", userId, usableCashString)
+	go logUserEvent(timestamp_command, "TS1", "1", "ADD", userId, "", usableCashString)
+
 	if err := session.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
@@ -524,6 +528,7 @@ func cancelBuy(userId string){
 	var usableCash int
 	var totalCash int
 	var uuid string
+	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
 
 	//grab usableCash of the user
@@ -532,7 +537,7 @@ func cancelBuy(userId string){
 	}
 
 	//retrieve pending cash from most recent buy transaction
-	if err := session.Query("select pid, pendingCash from buypendingtransactions where userId='" + userId + "'" + " LIMIT 1").Scan(&uuid, &pendingCash); err != nil {
+	if err := session.Query("select pid, pendingCash, stock from buypendingtransactions where userId='" + userId + "'" + " LIMIT 1").Scan(&uuid, &pendingCash,&stock); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
@@ -547,6 +552,9 @@ func cancelBuy(userId string){
 	if err := session.Query("delete from buypendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "CANCEL_BUY", userId, stock, "")
 
 }
 
@@ -651,6 +659,9 @@ func commitBuy(userId string){
 
 	}
 
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "COMMIT_BUY", userId, buyingstockName, "")
+
 	//delete the pending transcation
 	if err := session.Query("delete from buypendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -679,6 +690,10 @@ func buy(userId string, stock string, pendingCashString string){
 	var usableCash int
 
 	message := quoteRequest(userId, stock)
+
+	timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
+	
 	fmt.Println(message[0])
 	stockValueQuoteString := message[0]
 	stockValue = stringToCents(stockValueQuoteString)
@@ -717,6 +732,11 @@ func buy(userId string, stock string, pendingCashString string){
 	f := uuid.Formatter(u, uuid.FormatCanonical)
 	fmt.Println(f)
 
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "BUY", userId, stock, pendingCashString)
+
+	
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
 	if err := session.Query("INSERT INTO buypendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -795,6 +815,9 @@ func setBuyAmount(userId string, stock string, pendingCashString string){
 	//buy operation flag
 	//var operation string = "true"
 
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SET_BUY_AMOUNT", userId, stock, pendingCashString)
+
 	if err := session.Query("INSERT INTO buyTriggers (tid, pendingCash, stock, userid) VALUES (" + f + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
 		panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
 	}
@@ -822,9 +845,13 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
 
 	//set the triggerValue and create thread to check the quote server
 
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
+
 	if err := session.Query("UPDATE buyTriggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem setting trigger", err))
 	}
+
 
 	go checkBuyTrigger(userId, stock, stockPriceTrigger)
 
@@ -1038,6 +1065,10 @@ func cancelBuyTrigger(userId string, stock string){
 	}
 
 	fmt.Println("cancelling buy trigger")
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "CANCEL_SET_BUY", userId, stock, "")
+
 	if err := session.Query("DELETE FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
@@ -1055,6 +1086,10 @@ func cancelSellTrigger(userId string, stock string){
 	}
 
 	fmt.Println("cancelling sell trigger")
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "CANCEL_SET_SELL", userId, stock, "")
+
 	if err := session.Query("DELETE FROM sellTriggers WHERE userId='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
@@ -1086,6 +1121,9 @@ func setSellAmount(userId string, stock string, pendingCashString string){
 	//create trigger to sell a certain amount of the stock
 	u := uuid.NewV4()
 	f := uuid.Formatter(u, uuid.FormatCanonical)
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SET_SELL_AMOUNT", userId, stock, pendingCashString)
 
 	//Create new entry for the sell trigger with the sell amount
 	if err := session.Query("INSERT INTO sellTriggers (tid, pendingCash, stock, userid) VALUES (" + f + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
@@ -1124,6 +1162,8 @@ func setSellTrigger(userId string, stock string, stockSellPrice string){
 		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 	}
 
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
 	go checkSellTrigger(userId, stock, stockSellPriceCents)
 }
 
@@ -1370,9 +1410,10 @@ func commitSell(userId string){
 	var uuid string
 	var pendingCash int
 	var usableCash int
+	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
 
-	if err := session.Query("select pid from sellpendingtransactions where userid='" + userId + "'").Scan(&uuid); err != nil{
+	if err := session.Query("select pid,stock from sellpendingtransactions where userid='" + userId + "'").Scan(&uuid,&stock); err != nil{
 		panic(fmt.Sprintf("problem", err))
 	}
 
@@ -1404,6 +1445,9 @@ func commitSell(userId string){
 	if err := session.Query("delete from sellpendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "COMMIT_SELL", userId, stock, "")
 
 }
 
@@ -1459,6 +1503,9 @@ func cancelSell(userId string){
 	if err := session.Query("delete from sellpendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
+
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "CANCEL_SELL", userId, stock, "")
 }
 
 func deleteSession(){
