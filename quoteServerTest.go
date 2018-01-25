@@ -270,50 +270,50 @@ func quoteRequest(userId string, stockSymbol string) []string{
 func logUserEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string){
 	//connect to audit server
 	fmt.Println("In log user Event")
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func logQuoteEvent(time string, server string, transactionNum string, price string, stockSymbol string, userid string, quoteservertime string, cryptokey string){
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "Quote" + "," + time + "," + server + "," + transactionNum + "," + price + "," + stockSymbol + "," + userid + "," + quoteservertime + "," + cryptokey
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func logSystemEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string){
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "System" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func logAccountTransactionEvent(time string, server string, transactionNum string, action string, userid string, funds string){
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "Account" + "," + time + "," + server + "," + transactionNum + "," + action + "," + userid + "," + funds
 	fmt.Fprintf(conn,text + "\n") 	
 }
 
 func logErrorEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string, error string){
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds + "," + error
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func logDebugEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string, debug string){
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds + "," + debug
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func dumpUser(userId string, filename string){
 	fmt.Println("In Dump user")
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "DUMP" + "," + userId + "," + filename
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func dump(filename string){
-	conn, _ := net.Dial("tcp", "192.168.3.102:5555")
+	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "DUMP" + "," + filename
 	fmt.Fprintf(conn,text + "\n") 
 }
@@ -359,30 +359,79 @@ func stringToCents(x string) int{
 
 //chekcs if the command can be executed
 //ie check if buy set before commit etc
-func checkDependency(command string, userId string, stock string){
+func checkDependency(command string, userId string, stock string) bool{
+
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = "userdb"
+	cluster.ProtoVersion = 4
+	session, err := cluster.CreateSession()
+	if err != nil {
+		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	var count int
+
 	if command == "COMMIT_BUY"{
 		//check if a buy entry exists in buypendingtransactions table
-
+		if err := session.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+		if count == 0{
+			return false
+		}
 	}
 	if command == "COMMIT_SELL"{
 		//check if a sell entry exists in sellpendingtransactions table
+		if command == "COMMIT_BUY"{
+			//check if a sell entry exists in buypendingtransactions table
+			if err := session.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
+				panic(fmt.Sprintf("problem creating session", err))
+			}
+			if count == 0{
+				return false
+			}
+		}
 		
 	}
 	if command == "CANCEL_BUY"{
 		//check if a buy entry exists in buypendingtransactions table
+		if err := session.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+		if count == 0{
+			return false
+		}
 		
 	}
 	if command == "CANCEL_SELL"{
 		//check if a sell entry exists in sellpendingtransactions table
+		if err := session.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
+			panic(fmt.Sprintf("problem creating session", err))
+		}
+		if count == 0{
+			return false
+		}
 		
 	}
 	if command == "CANCEL_SET_BUY"{
-
-		
+		if err := session.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
+			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
+		}
+		if count == 0{
+			return false
+		}
 	}
 	if command == "CANCEL_SET_SELL"{
+		if err := session.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
+			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
+		}
+		if count == 0{
+			return false
+		}
 		
 	}
+
+	return false
 }
 
 func addFunds(userId string, addCashAmount int){
@@ -603,6 +652,12 @@ func cancelBuy(userId string){
 	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
 
+	sellExists := checkDependency("CANCEL_BUY",userId,"none")
+	if(sellExists == false){
+		fmt.Println("cannot CANCEL BUY, no buys pending")
+		return
+	}
+
 	//grab usableCash of the user
 	if err := session.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -638,6 +693,12 @@ func commitBuy(userId string){
 	session, err := cluster.CreateSession()
 	if err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	buyExists := checkDependency("COMMIT_BUY",userId,"none")
+	if(buyExists == false){
+		fmt.Println("cannot commit, no buys pending")
+		return
 	}
 
 	var pendingCash int
@@ -1136,6 +1197,12 @@ func cancelBuyTrigger(userId string, stock string){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
+	buyExists := checkDependency("CANCEL_SET_BUY",userId,stock)
+	if(buyExists == false){
+		fmt.Println("cannot CANCEL, no buys pending")
+		return
+	}
+
 	fmt.Println("cancelling buy trigger")
 
 	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
@@ -1155,6 +1222,12 @@ func cancelSellTrigger(userId string, stock string){
 	session, err := cluster.CreateSession()
 	if err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
+	}
+
+	sellExists := checkDependency("CANCEL_SET_SELL",userId,stock)
+	if(sellExists == false){
+		fmt.Println("cannot CANCEL, no sells pending")
+		return
 	}
 
 	fmt.Println("cancelling sell trigger")
@@ -1494,6 +1567,13 @@ func commitSell(userId string){
 	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
 
+	sellExists := checkDependency("COMMIT_SELL",userId,"none")
+	if(sellExists == false){
+		fmt.Println("cannot commit, no sells pending")
+		return
+	}
+
+
 	if err := session.Query("select pid,stock from sellpendingtransactions where userid='" + userId + "'").Scan(&uuid,&stock); err != nil{
 		panic(fmt.Sprintf("problem", err))
 	}
@@ -1554,6 +1634,12 @@ func cancelSell(userId string){
 	var stocks int
 
 	userId = strings.TrimSuffix(userId, "\n")
+
+	sellExists := checkDependency("CANCEL_SELL",userId,"none")
+	if(sellExists == false){
+		fmt.Println("cannot CANCEL SELL, no sell pending")
+		return
+	}
 
 	//obtain stocks and number of stocks for cancelled transaction
 	if err := session.Query("select pid, userId, pendingcash, stock, stockvalue from sellpendingtransactions where userId='" + userId + "'" + " LIMIT 1").Scan(&uuid, &userId, &pendingCash, &stock, &pendingStock, ); err != nil {
