@@ -63,16 +63,16 @@ CREATE TABLE userdb.userstocks (
     AND min_index_interval = 128
     AND read_repair_chance = 0.0
     AND speculative_retry = '99PERCENTILE';
+CREATE INDEX ON userdb.userstocks (userid);
 
 CREATE TABLE userdb.buypendingtransactions (
-    pid uuid,
-    posttime timestamp,
+    pid timeuuid,
     pendingcash int,
     stock text,
     stockvalue int,
     userid text,
-    PRIMARY KEY((userid), posttime)
-) WITH CLUSTERING ORDER BY (posttime DESC)
+    PRIMARY KEY((userid), pid)
+) WITH CLUSTERING ORDER BY (pid DESC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''

@@ -289,10 +289,10 @@ func quoteRequest(userId string, stockSymbol string) []string{
 
 func logUserEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string){
 	//connect to audit server
-	fmt.Println("In log user Event")
 	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
 	fmt.Fprintf(conn,text + "\n") 
+	go logSystemEvent(time, "AU1", "1",command,userid,"","")
 }
 
 func logQuoteEvent(time string, server string, transactionNum string, price string, stockSymbol string, userid string, quoteservertime string, cryptokey string){
@@ -328,13 +328,13 @@ func logDebugEvent(time string, server string, transactionNum string, command st
 func dumpUser(userId string, filename string){
 	fmt.Println("In Dump user")
 	conn, _ := net.Dial("tcp", "localhost:5555")
-	text := "DUMP" + "," + userId + "," + filename
+	text := "DUMPLOG" + "," + userId + "," + filename
 	fmt.Fprintf(conn,text + "\n") 
 }
 
 func dump(filename string){
 	conn, _ := net.Dial("tcp", "localhost:5555")
-	text := "DUMP" + "," + filename
+	text := "DUMPLOG" + "," + filename
 	fmt.Fprintf(conn,text + "\n") 
 }
 
@@ -386,18 +386,23 @@ func checkDependency(command string, userId string, stock string) bool{
 
 	if command == "COMMIT_BUY"{
 		//check if a buy entry exists in buypendingtransactions table
+
 		if err := sessionGlobal.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
+
 			panic(fmt.Sprintf("problem creating session", err))
 		}
 		if count == 0{
 			return false
+
 		}else{
+
 			return true
 		}
 	}
 	if command == "COMMIT_SELL"{
 		//check if a sell entry exists in sellpendingtransactions table
 			//check if a sell entry exists in buypendingtransactions table
+
 			if err := sessionGlobal.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
@@ -1408,10 +1413,11 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	}
 	sellableStocks := sellStockDollars/stockValue
 	print("total sellable stocks ")
-	print(sellableStocks)
+	fmt.Println(sellableStocks)
 	//if has enough stock for desired sell amount, set aside stocks from db
 	usableStocks = usableStocks - sellableStocks;
 	usableStocksString := strconv.FormatInt(int64(usableStocks),10)
+	fmt.Println("set stocks to " + usableStocksString)
 	pendingCash := sellableStocks * stockValue;
 	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
