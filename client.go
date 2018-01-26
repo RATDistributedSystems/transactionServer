@@ -9,7 +9,7 @@ func main() {
     for{
   // connect to this socket
   //conn, _ := net.Dial("tcp", "134.87.147.241:3333")
-    conn, _ := net.Dial("tcp", "134.87.152.32:44441")
+    conn, _ := net.Dial("tcp", "localhost:44441")
     // read in input from stdin
     reader := bufio.NewReader(os.Stdin)
     fmt.Print("Text to send: ")
