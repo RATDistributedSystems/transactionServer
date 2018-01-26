@@ -281,7 +281,7 @@ func displaySummary(userId string){
 
 func quoteRequest(userId string, stockSymbol string) []string{
 	// connect to this socket
-	conn, _ := net.Dial("tcp", "localhost:3333")
+	conn, _ := net.Dial("tcp", "quoteserve.seng:4446")
 		// read in input from stdin
 		//reader := bufio.NewReader(os.Stdin)
 		//fmt.Print("Text to send: ")
