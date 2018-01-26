@@ -145,6 +145,16 @@ func commandExecuter(command string){
 			cancelBuyTrigger(result[1],result[2])
 		}
 
+		if result[0] == "CANCEL_SET_BUY"{
+			fmt.Println(len(result))
+			cancelBuyTrigger(result[1],result[2])
+		}
+
+		if result[0] == "DISPLAY_SUMMARY"{
+			fmt.Println(len(result))
+			displaySummary(result[1])
+		}
+
 		if result[0] == "DUMPLOG"{
 			if len(result) == 3{
 				dumpUser(result[1],result[2])
@@ -263,6 +273,10 @@ func selectCommand(text string){
 		fmt.Println("sell Test")
 		//sell()
 	}
+}
+
+func displaySummary(userId string){
+	//return user summary of their stocks, cash, triggers, etc
 }
 
 func quoteRequest(userId string, stockSymbol string) []string{
@@ -808,8 +822,8 @@ func buy(userId string, stock string, pendingCashString string){
 
 	message := quoteRequest(userId, stock)
 
-	//timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	//go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
+	timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
 	
 	fmt.Println(message[0])
 	stockValueQuoteString := message[0]
@@ -850,8 +864,8 @@ func buy(userId string, stock string, pendingCashString string){
 	fmt.Println(f)
 
 
-	//timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	//go logUserEvent(timestamp_command, "TS1", "1", "BUY", userId, stock, pendingCashString)
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "BUY", userId, stock, pendingCashString)
 
 	
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
@@ -1377,8 +1391,8 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	message := quoteRequest(userId, stock)
 
 
-	//timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	//go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
+	timestamp_quote := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logQuoteEvent(timestamp_quote,"TS1","1",message[0],message[1],userId,message[3],message[4])
 	fmt.Println(message[0])
 	stockValue = stringToCents(message[0])
 
@@ -1438,8 +1452,8 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	//tm := time.Now()
 
 	//make a record of the new transaction
-	//timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	//go logUserEvent(timestamp_command, "TS1", "1", "SELL", userId, stock, sellStockDollarsString)
+	timestamp_command := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	go logUserEvent(timestamp_command, "TS1", "1", "SELL", userId, stock, sellStockDollarsString)
 
 	if err := sessionGlobal.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
