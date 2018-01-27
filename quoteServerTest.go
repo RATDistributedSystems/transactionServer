@@ -96,12 +96,10 @@ func commandExecuter(command string){
 
 		if result[0] == "BUY"{
 			transactionNum += 1
-			
 			fmt.Println(result[1])
 			fmt.Println(result[2])
 			fmt.Println(result[3])
 			go buy(result[1],result[2],result[3])
-
 		}
 
 		if result[0] == "COMMIT_BUY"{
@@ -337,7 +335,7 @@ func logUserEvent(time string, server string, transactionNum string, command str
 	conn, _ := net.Dial("tcp", "localhost:5555")
 	text := "User" + "," + time + "," + server + "," + transactionNum + "," + command + "," + userid + "," + stockSymbol + "," + funds
 	fmt.Fprintf(conn,text + "\n")
-	go logSystemEvent(time, "AU1", "1",command,userid,"","")
+	//go logSystemEvent(time, "AU1", "1",command,userid,"","")
 }
 
 func logQuoteEvent(time string, server string, transactionNum string, price string, stockSymbol string, userid string, quoteservertime string, cryptokey string){
@@ -888,7 +886,7 @@ func buy(userId string, stock string, pendingCashString string){
 	fmt.Println(pendingCash);
 	//if not close the session
 	if usableCash < pendingCash{
-		sessionGlobal.Close()
+		
 		return
 	}
 
@@ -966,7 +964,7 @@ func setBuyAmount(userId string, stock string, pendingCashString string){
 	//if the user doesnt have enough funds cancel the allocation
 	if usableCash < pendingCash{
 		fmt.Println("Not enough money for this transaction")
-		sessionGlobal.Close()
+		
 		return
 	}
 
@@ -1490,7 +1488,7 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	}
 	println(hasStock)
 	if (!hasStock){
-		sessionGlobal.Close()
+		
 		return
 	}
 	fmt.Println(stockname, stockamount)
@@ -1500,7 +1498,7 @@ func sell(userId string, stock string, sellStockDollarsString string){
 
 	//if not close the session
 	if  (stockValue*usableStocks) < sellStockDollars{
-		sessionGlobal.Close()
+		
 		return
 	}
 	sellableStocks := sellStockDollars/stockValue
