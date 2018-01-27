@@ -54,7 +54,7 @@ func handleRequest(conn net.Conn) {
 }
 
 var sessionGlobal *gocql.Session
-var transactionNum int
+var transactionNumGlobal int
 
 func main(){
 
@@ -68,7 +68,7 @@ func main(){
 
 	sessionGlobal = session
 	
-	transactionNum = 0;
+	transactionNumGlobal = 0;
 	
 
 	uuid.Init()
@@ -83,105 +83,91 @@ func commandExecuter(command string){
 		result := processCommand(command)
 
 		if result[0] == "ADD"{
-			transactionNum += 1
-
-			go addUser(result[1],result[2])
+			transactionNumGlobal += 1
+			go addUser(result[1],result[2],transactionNumGlobal)
 		}
 
 		if result[0] == "QUOTE"{
-			transactionNum += 1
-
-			go quoteRequest(result[1],result[2])
+			transactionNumGlobal += 1
+			go quoteRequest(result[1],result[2],transactionNumGlobal)
 		}
 
 		if result[0] == "BUY"{
-			transactionNum += 1
+			transactionNumGlobal += 1
 			fmt.Println(result[1])
 			fmt.Println(result[2])
 			fmt.Println(result[3])
-			go buy(result[1],result[2],result[3])
+			go buy(result[1],result[2],result[3],transactionNumGlobal)
 		}
 
 		if result[0] == "COMMIT_BUY"{
-			transactionNum += 1
-			go commitBuy(result[1])
+			transactionNumGlobal += 1
+			go commitBuy(result[1],transactionNumGlobal)
 		}
 
 		if result[0] == "CANCEL_BUY"{
-			transactionNum += 1
-
-			go cancelBuy(result[1])
+			transactionNumGlobal += 1
+			go cancelBuy(result[1],transactionNumGlobal)
 		}
 
 		if result[0] == "SELL"{
-			transactionNum += 1
-
-			go sell(result[1],result[2],result[3])
+			transactionNumGlobal += 1
+			go sell(result[1],result[2],result[3],transactionNumGlobal)
 		}
 
 		if result[0] == "COMMIT_SELL"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go commitSell(result[1])
+			go commitSell(result[1],transactionNumGlobal)
 		}
 
 		if result[0] == "CANCEL_SELL"{
-			transactionNum += 1
-
-			go cancelSell(result[1])
+			transactionNumGlobal += 1
+			go cancelSell(result[1],transactionNumGlobal)
 		}
 
 		if result[0] == "SET_BUY_AMOUNT"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go setBuyAmount(result[1],result[2],result[3])
+			go setBuyAmount(result[1],result[2],result[3],transactionNumGlobal)
 		}
 
 		if result[0] == "SET_BUY_TRIGGER"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go setBuyTrigger(result[1],result[2],result[3])
+			go setBuyTrigger(result[1],result[2],result[3],transactionNumGlobal)
 		}
 
 		if result[0] == "SET_SELL_AMOUNT"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go setSellAmount(result[1],result[2],result[3])
+			go setSellAmount(result[1],result[2],result[3],transactionNumGlobal)
 		}
 
 		if result[0] == "SET_SELL_TRIGGER"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go setSellTrigger(result[1],result[2],result[3])
+			go setSellTrigger(result[1],result[2],result[3],transactionNumGlobal)
 		}
 		if result[0] == "CANCEL_SET_SELL"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go cancelSellTrigger(result[1],result[2])
+			go cancelSellTrigger(result[1],result[2],transactionNumGlobal)
 		}
 		if result[0] == "CANCEL_SET_BUY"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
-			go cancelBuyTrigger(result[1],result[2])
+			go cancelBuyTrigger(result[1],result[2],transactionNumGlobal)
 		}
 
 		if result[0] == "DISPLAY_SUMMARY"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			fmt.Println(len(result))
 			go displaySummary(result[1])
 		}
 
 		if result[0] == "DUMPLOG"{
-			transactionNum += 1
-
+			transactionNumGlobal += 1
 			if len(result) == 3{
 				go dumpUser(result[1],result[2])
 			} else if len(result) == 2{
@@ -189,7 +175,7 @@ func commandExecuter(command string){
 			}
 		}
 }
-
+/*
 func commandListener(){
 	for {
 		reader := bufio.NewReader(os.Stdin)
@@ -271,7 +257,7 @@ func commandListener(){
 
 	}
 }
-
+*/
 func processCommand(text string) []string{
 	result := strings.Split(text, ",")
 	for i := range result {
@@ -307,7 +293,7 @@ func displaySummary(userId string){
 	//return user summary of their stocks, cash, triggers, etc
 }
 
-func quoteRequest(userId string, stockSymbol string) []string{
+func quoteRequest(userId string, stockSymbol string ,transactionNum int) []string{
 	// connect to this socket
 		//conn, _ := net.Dial("tcp", "quoteserve.seng:3333")
 		conn, _ := net.Dial("tcp", "quoteserve.seng:4446")
@@ -326,6 +312,11 @@ func quoteRequest(userId string, stockSymbol string) []string{
 		fmt.Print("Message from server: "+message)
 
 		messageArray := strings.Split(message, ",")
+
+		timestamp_q := (time.Now().UTC().UnixNano())/ 1000000
+		timestamp_quote := strconv.FormatInt(timestamp_q,10)
+		transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+		go logQuoteEvent(timestamp_quote,"TS1",transactionNum_string,messageArray[0],messageArray[1],userId,messageArray[3],messageArray[4])
 
 		return messageArray
 }
@@ -526,7 +517,7 @@ func addFunds(userId string, addCashAmount int){
 }
 
 
-func addUser(userId string, usableCashString string){
+func addUser(userId string, usableCashString string,transactionNum int){
 
 
 	usableCash := stringToCents(usableCashString)
@@ -689,7 +680,7 @@ func updateStateSell(userId string, uuid string, usid string){
 
 }
 
-func cancelBuy(userId string){
+func cancelBuy(userId string,transactionNum int){
 	var pendingCash int
 	var usableCash int
 	var totalCash int
@@ -734,7 +725,7 @@ func cancelBuy(userId string){
 
 }
 
-func commitBuy(userId string){
+func commitBuy(userId string,transactionNum int){
 
 
 	buyExists := checkDependency("COMMIT_BUY",userId,"none")
@@ -849,7 +840,7 @@ func commitBuy(userId string){
 
 }
 
-func buy(userId string, stock string, pendingCashString string){
+func buy(userId string, stock string, pendingCashString string,transactionNum int){
 	//userid,stocksymbol,amount
 
 
@@ -861,7 +852,7 @@ func buy(userId string, stock string, pendingCashString string){
 	var stockValue int
 	var usableCash int
 
-	message := quoteRequest(userId, stock)
+	message := quoteRequest(userId, stock,transactionNum)
 
 	timestamp_q := (time.Now().UTC().UnixNano())/ 1000000
 	timestamp_quote := strconv.FormatInt(timestamp_q,10)
@@ -935,7 +926,7 @@ func buy(userId string, stock string, pendingCashString string){
 
 //sets aside the amount of money user wants to spend on a given stock
 //executes prior to setTriggerValue
-func setBuyAmount(userId string, stock string, pendingCashString string){
+func setBuyAmount(userId string, stock string, pendingCashString string,transactionNum int){
 
 	//create session with cass database
 
@@ -1003,7 +994,7 @@ func setBuyAmount(userId string, stock string, pendingCashString string){
 }
 
 //Set maxmimum price of a stock before the stock gets auto bought
-func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
+func setBuyTrigger(userId string, stock string, stockPriceTriggerString string,transactionNum int){
 
 
 	//convert trigger price from string to int cents
@@ -1026,7 +1017,7 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string){
 	}
 
 
-	go checkBuyTrigger(userId, stock, stockPriceTrigger)
+	go checkBuyTrigger(userId, stock, stockPriceTrigger,transactionNum)
 
 }
 
@@ -1053,7 +1044,7 @@ func checkTriggerExists(userId string, stock string, operation bool) bool{
 	}
 }
 
-func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
+func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transactionNum int){
 
 
 
@@ -1073,7 +1064,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 
 
 
-		message := quoteRequest(userId, stock)
+		message := quoteRequest(userId, stock,transactionNum)
 		currentStockPrice := stringToCents(message[0])
 
 		fmt.Println("Trigger value")
@@ -1213,7 +1204,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int){
 }
 
 //cancel any buy triggers as well as buy_sell_amounts
-func cancelBuyTrigger(userId string, stock string){
+func cancelBuyTrigger(userId string, stock string,transactionNum int){
 
 
 	buyExists := checkDependency("CANCEL_SET_BUY",userId,stock)
@@ -1237,7 +1228,7 @@ func cancelBuyTrigger(userId string, stock string){
 }
 
 //cancels any sell triggers or sell amounts
-func cancelSellTrigger(userId string, stock string){
+func cancelSellTrigger(userId string, stock string,transactionNum int){
 
 
 	sellExists := checkDependency("CANCEL_SET_SELL",userId,stock)
@@ -1261,7 +1252,7 @@ func cancelSellTrigger(userId string, stock string){
 }
 
 //sets the total cash to gain from selling a stock
-func setSellAmount(userId string, stock string, pendingCashString string){
+func setSellAmount(userId string, stock string, pendingCashString string,transactionNum int){
 
 
 	pendingCashCents := stringToCents(pendingCashString)
@@ -1293,7 +1284,7 @@ func setSellAmount(userId string, stock string, pendingCashString string){
 	}
 }
 
-func setSellTrigger(userId string, stock string, stockSellPrice string){
+func setSellTrigger(userId string, stock string, stockSellPrice string,transactionNum int){
 
 
 
@@ -1323,11 +1314,11 @@ func setSellTrigger(userId string, stock string, stockSellPrice string){
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	go logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
-	go checkSellTrigger(userId, stock, stockSellPriceCents)
+	go checkSellTrigger(userId, stock, stockSellPriceCents,transactionNum)
 }
 
 
-func checkSellTrigger(userId string, stock string, stockSellPriceCents int){
+func checkSellTrigger(userId string, stock string, stockSellPriceCents int,transactionNum int){
 
 	operation := false
 
@@ -1345,7 +1336,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int){
 		}
 
 		//retrieve current stock price
-		message := quoteRequest(userId, stock)
+		message := quoteRequest(userId, stock,transactionNum)
 		currentStockPrice := stringToCents(message[0])
 
 		if currentStockPrice > stockSellPriceCents{
@@ -1447,7 +1438,7 @@ func checkStockOwnership(userId string, stock string) (int, string){
 }
 
 
-func sell(userId string, stock string, sellStockDollarsString string){
+func sell(userId string, stock string, sellStockDollarsString string,transactionNum int){
 //userid,stocksymbol,amount
 
 	//var userId string = "Jones"
@@ -1460,7 +1451,7 @@ func sell(userId string, stock string, sellStockDollarsString string){
 	var usid string
 	var hasStock bool
 
-	message := quoteRequest(userId, stock)
+	message := quoteRequest(userId, stock,transactionNum)
 
 
 	timestamp_q := (time.Now().UTC().UnixNano())/ 1000000
@@ -1554,7 +1545,7 @@ func sell(userId string, stock string, sellStockDollarsString string){
 //-----------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------------------------------
-func commitSell(userId string){
+func commitSell(userId string,transactionNum int){
 
 	var uuid string
 	var pendingCash int
@@ -1615,7 +1606,7 @@ func commitSell(userId string){
 
 }
 
-func cancelSell(userId string){
+func cancelSell(userId string,transactionNum int){
 
 	var uuid string
 	var pendingCash int
