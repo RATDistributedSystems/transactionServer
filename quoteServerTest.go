@@ -174,13 +174,6 @@ func commandExecuter(command string){
 			go cancelBuyTrigger(result[1],result[2])
 		}
 
-		if result[0] == "CANCEL_SET_BUY"{
-			transactionNum += 1
-
-			fmt.Println(len(result))
-			go cancelBuyTrigger(result[1],result[2])
-		}
-
 		if result[0] == "DISPLAY_SUMMARY"{
 			transactionNum += 1
 
@@ -276,6 +269,8 @@ func commandListener(){
 				dump(result[1])
 			}
 		}
+
+
 	}
 }
 
