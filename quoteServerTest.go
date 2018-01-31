@@ -81,85 +81,85 @@ func commandExecuter(command string){
 		result := processCommand(command)
 
 		if result[0] == "ADD"{
-			addUser(result[1],result[2])
+			go addUser(result[1],result[2])
 		}
 
 		if result[0] == "QUOTE"{
-			quoteRequest(result[1],result[2])
+			go quoteRequest(result[1],result[2])
 		}
 
 		if result[0] == "BUY"{
 			fmt.Println(result[1])
 			fmt.Println(result[2])
 			fmt.Println(result[3])
-			buy(result[1],result[2],result[3])
+			go buy(result[1],result[2],result[3])
 
 		}
 
 		if result[0] == "COMMIT_BUY"{
-			commitBuy(result[1])
+			go commitBuy(result[1])
 		}
 
 		if result[0] == "CANCEL_BUY"{
-			cancelBuy(result[1])
+			go cancelBuy(result[1])
 		}
 
 		if result[0] == "SELL"{
-			sell(result[1],result[2],result[3])
+			go sell(result[1],result[2],result[3])
 		}
 
 		if result[0] == "COMMIT_SELL"{
 			fmt.Println(len(result))
-			commitSell(result[1])
+			go commitSell(result[1])
 		}
 
 		if result[0] == "CANCEL_SELL"{
-			cancelSell(result[1])
+			go cancelSell(result[1])
 		}
 
 		if result[0] == "SET_BUY_AMOUNT"{
 			fmt.Println(len(result))
-			setBuyAmount(result[1],result[2],result[3])
+			go setBuyAmount(result[1],result[2],result[3])
 		}
 
 		if result[0] == "SET_BUY_TRIGGER"{
 			fmt.Println(len(result))
-			setBuyTrigger(result[1],result[2],result[3])
+			go setBuyTrigger(result[1],result[2],result[3])
 		}
 
 		if result[0] == "SET_SELL_AMOUNT"{
 			fmt.Println(len(result))
-			setSellAmount(result[1],result[2],result[3])
+			go setSellAmount(result[1],result[2],result[3])
 		}
 
 		if result[0] == "SET_SELL_TRIGGER"{
 			fmt.Println(len(result))
-			setSellTrigger(result[1],result[2],result[3])
+			go setSellTrigger(result[1],result[2],result[3])
 		}
 		if result[0] == "CANCEL_SET_SELL"{
 			fmt.Println(len(result))
-			cancelSellTrigger(result[1],result[2])
+			go cancelSellTrigger(result[1],result[2])
 		}
 		if result[0] == "CANCEL_SET_BUY"{
 			fmt.Println(len(result))
-			cancelBuyTrigger(result[1],result[2])
+			go cancelBuyTrigger(result[1],result[2])
 		}
 
 		if result[0] == "CANCEL_SET_BUY"{
 			fmt.Println(len(result))
-			cancelBuyTrigger(result[1],result[2])
+			go cancelBuyTrigger(result[1],result[2])
 		}
 
 		if result[0] == "DISPLAY_SUMMARY"{
 			fmt.Println(len(result))
-			displaySummary(result[1])
+			go displaySummary(result[1])
 		}
 
 		if result[0] == "DUMPLOG"{
 			if len(result) == 3{
-				dumpUser(result[1],result[2])
+				go dumpUser(result[1],result[2])
 			} else if len(result) == 2{
-				dump(result[1])
+				go dump(result[1])
 			}
 		}
 }
