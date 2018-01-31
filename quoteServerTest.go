@@ -463,6 +463,14 @@ func addUser(userId string, usableCashString string,transactionNum int){
 
 	var count int
 
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	//transactionNum_user += 1
+	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logAccountTransactionEvent(timestamp_command, "TS1", "1", "ADD", userId, usableCashString)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "ADD", userId, "", usableCashString)
+
 	if err := sessionGlobal.Query("SELECT count(*) FROM users WHERE userid='" + userId + "'").Scan(&count); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
@@ -488,13 +496,7 @@ func addUser(userId string, usableCashString string,transactionNum int){
 	//	panic(fmt.Sprintf("problem creating session", err))
 	//}
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logAccountTransactionEvent(timestamp_command, "TS1", "1", "ADD", userId, usableCashString)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "ADD", userId, "", usableCashString)
+
 
 	//if err := sessionGlobal.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
 	//	panic(fmt.Sprintf("problem creating session", err))
@@ -625,6 +627,11 @@ func cancelBuy(userId string,transactionNum int){
 	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
 
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_BUY", userId, stock, "")
+
 	sellExists := checkDependency("CANCEL_BUY",userId,"none")
 	if(sellExists == false){
 		fmt.Println("cannot CANCEL BUY, no buys pending")
@@ -653,12 +660,7 @@ func cancelBuy(userId string,transactionNum int){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_BUY", userId, stock, "")
+	
 
 }
 
@@ -679,6 +681,13 @@ func commitBuy(userId string,transactionNum int){
 	var usableCash int
 	var uuid string
 	userId = strings.TrimSuffix(userId, "\n")
+
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	//transactionNum_user += 1
+	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "COMMIT_BUY", userId, buyingstockName, "")
 
 
 	if err := sessionGlobal.Query("select pid, stock, stockValue, pendingCash from buypendingtransactions where userId='" + userId + "'").Scan(&uuid,&buyingstockName, &stockValue, &pendingCash); err != nil {
@@ -762,12 +771,7 @@ func commitBuy(userId string,transactionNum int){
 
 	}
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "COMMIT_BUY", userId, buyingstockName, "")
+	
 
 	//delete the pending transcation
 	if err := sessionGlobal.Query("delete from buypendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
@@ -798,6 +802,12 @@ func buy(userId string, stock string, pendingCashString string,transactionNum in
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logQuoteEvent(timestamp_quote,"TS1",transactionNum_string,message[0],message[1],userId,message[3],message[4])
 	
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	//transactionNum_user += 1
+	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "BUY", userId, stock, pendingCashString)
+
 	fmt.Println(message[0])
 	stockValueQuoteString := message[0]
 	stockValue = stringToCents(stockValueQuoteString)
@@ -837,11 +847,7 @@ func buy(userId string, stock string, pendingCashString string,transactionNum in
 	fmt.Println(f)
 
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "BUY", userId, stock, pendingCashString)
+
 
 	
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
@@ -876,6 +882,13 @@ func setBuyAmount(userId string, stock string, pendingCashString string,transact
 
 	//convert pendingCash from string to int of cents
 	pendingCash := stringToCents(pendingCashString)
+
+		timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	//transactionNum_user += 1
+	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_BUY_AMOUNT", userId, stock, pendingCashString)
 
 
 	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
@@ -915,12 +928,7 @@ func setBuyAmount(userId string, stock string, pendingCashString string,transact
 	//buy operation flag
 	//var operation string = "true"
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_BUY_AMOUNT", userId, stock, pendingCashString)
+
 
 	if err := sessionGlobal.Query("INSERT INTO buyTriggers (tid, pendingCash, stock, userid) VALUES (" + f + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
 		panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
@@ -1143,8 +1151,13 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 //cancel any buy triggers as well as buy_sell_amounts
 func cancelBuyTrigger(userId string, stock string,transactionNum int){
 
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SET_BUY", userId, stock, "")
 
 	buyExists := checkDependency("CANCEL_SET_BUY",userId,stock)
+
 	if(buyExists == false){
 		fmt.Println("cannot CANCEL, no buys pending")
 		return
@@ -1152,12 +1165,9 @@ func cancelBuyTrigger(userId string, stock string,transactionNum int){
 
 	fmt.Println("cancelling buy trigger")
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	 logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SET_BUY", userId, stock, "")
+
 
 	if err := sessionGlobal.Query("DELETE FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -1167,6 +1177,10 @@ func cancelBuyTrigger(userId string, stock string,transactionNum int){
 //cancels any sell triggers or sell amounts
 func cancelSellTrigger(userId string, stock string,transactionNum int){
 
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SET_SELL", userId, stock, "")
 
 	sellExists := checkDependency("CANCEL_SET_SELL",userId,stock)
 	if(sellExists == false){
@@ -1176,12 +1190,10 @@ func cancelSellTrigger(userId string, stock string,transactionNum int){
 
 	fmt.Println("cancelling sell trigger")
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	 logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SET_SELL", userId, stock, "")
+
 
 	if err := sessionGlobal.Query("DELETE FROM sellTriggers WHERE userId='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -1197,6 +1209,11 @@ func setSellAmount(userId string, stock string, pendingCashString string,transac
 	ownedStockAmount, usid := checkStockOwnership(userId, stock)
 	fmt.Println(usid)
 
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_AMOUNT", userId, stock, pendingCashString)
+
 	if(ownedStockAmount == 0){
 		fmt.Println("Cannot Sell a stock you don't own")
 		return
@@ -1208,12 +1225,10 @@ func setSellAmount(userId string, stock string, pendingCashString string,transac
 	u := uuid.NewV4()
 	f := uuid.Formatter(u, uuid.FormatCanonical)
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	 logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_AMOUNT", userId, stock, pendingCashString)
+
 
 	//Create new entry for the sell trigger with the sell amount
 	if err := sessionGlobal.Query("INSERT INTO sellTriggers (tid, pendingCash, stock, userid) VALUES (" + f + ", " + pendingCashString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil{
@@ -1227,6 +1242,12 @@ func setSellTrigger(userId string, stock string, stockSellPrice string,transacti
 
 	stockSellPriceCents := stringToCents(stockSellPrice)
 	stockSellPriceCentsString := strconv.FormatInt(int64(stockSellPriceCents), 10)
+
+
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
 
 	//check if set sell amount is set for this particular stock
 	var count int
@@ -1245,12 +1266,10 @@ func setSellTrigger(userId string, stock string, stockSellPrice string,transacti
 		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 	}
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
+
 	go checkSellTrigger(userId, stock, stockSellPriceCents,transactionNum)
 }
 
@@ -1424,6 +1443,13 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 	usableStocks = stockamount
 	fmt.Println(usableStocks);
 
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	//transactionNum_user += 1
+	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
+	//transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SELL", userId, stock, sellStockDollarsString)
+
 	//if not close the session
 	if  (stockValue*usableStocks) < sellStockDollars{
 		
@@ -1456,12 +1482,7 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 	//tm := time.Now()
 
 	//make a record of the new transaction
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	//transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SELL", userId, stock, sellStockDollarsString)
+
 
 	if err := sessionGlobal.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
@@ -1489,6 +1510,13 @@ func commitSell(userId string,transactionNum int){
 	var usableCash int
 	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
+
+		timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	//transactionNum_user += 1
+	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "COMMIT_SELL", userId, stock, "")
 
 	sellExists := checkDependency("COMMIT_SELL",userId,"none")
 	if(sellExists == false){
@@ -1534,12 +1562,7 @@ func commitSell(userId string,transactionNum int){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "COMMIT_SELL", userId, stock, "")
+
 
 }
 
@@ -1556,6 +1579,11 @@ func cancelSell(userId string,transactionNum int){
 	var stocks int
 
 	userId = strings.TrimSuffix(userId, "\n")
+
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	timestamp_command := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SELL", userId, "", "")
 
 	sellExists := checkDependency("CANCEL_SELL",userId,"none")
 	if(sellExists == false){
@@ -1595,12 +1623,9 @@ func cancelSell(userId string,transactionNum int){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SELL", userId, stock, "")
+
 }
 
 func deleteSession(){
