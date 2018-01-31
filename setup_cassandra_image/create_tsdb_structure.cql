@@ -111,6 +111,3 @@ CREATE TABLE userdb.sellpendingtransactions (
     AND min_index_interval = 128
     AND read_repair_chance = 0.0
     AND speculative_retry = '99PERCENTILE';
-
-
-INSERT INTO userdb.sellpendingtransactions(pid,pendingcash,stock,stockvalue,userid) VALUES (now(), 298494, 'abc', 900, 'Jones');
