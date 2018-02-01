@@ -24,13 +24,13 @@ func getUsableCash(userId string) int {
 
 func stringToCents(x string) int {
 	result := strings.Split(x, ".")
-	dollars, err := strconv.Atoi(result[0])
+	dollars, err := strconv.Atoi(strings.TrimSpace(result[0]))
 	if err != nil {
 		log.Printf("Couldn't convert %s to int", result[0])
 		return 0
 	}
 
-	cents, err := strconv.Atoi(strings.TrimSuffix(result[1], "\n"))
+	cents, err := strconv.Atoi(strings.TrimSpace(result[1]))
 	if err != nil {
 		log.Printf("Couldn't convert %s to int", result[1])
 		return 0
