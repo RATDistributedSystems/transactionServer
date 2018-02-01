@@ -1,0 +1,15 @@
+{
+    "serverConfigs" : {
+        "listener" : {
+            "address": "0.0.0.0",
+            "port": "44440",
+            "protocol": "tcp"
+        }
+    },
+
+    "misc" : {
+        "cassandra_ip" : "localhost",
+        "cassandra_keyspace" : "userdb",
+        "cassandra_proto" : "4"
+    } 
+}

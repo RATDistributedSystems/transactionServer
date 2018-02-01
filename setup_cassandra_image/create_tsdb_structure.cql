@@ -127,7 +127,7 @@ CREATE TABLE userdb.usercommands (
     stockSymbol text,
     funds text,
     PRIMARY KEY((userid), time)
-) WITH CLUSTERING ORDER BY (time DESC)
+) WITH CLUSTERING ORDER BY (time ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
@@ -153,7 +153,7 @@ CREATE TABLE userdb.quote_server (
     price text,
     cryptokey text,
     PRIMARY KEY((userid), time)
-) WITH CLUSTERING ORDER BY (time DESC)
+) WITH CLUSTERING ORDER BY (time ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
@@ -177,7 +177,7 @@ CREATE TABLE userdb.account_transaction(
     userid text,
     funds text,
     PRIMARY KEY((userid), time)
-) WITH CLUSTERING ORDER BY (time DESC)
+) WITH CLUSTERING ORDER BY (time ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
@@ -202,7 +202,7 @@ CREATE TABLE userdb.system_event(
     stocksymbol text,
     funds text,
     PRIMARY KEY((userid), time)
-) WITH CLUSTERING ORDER BY (time DESC)
+) WITH CLUSTERING ORDER BY (time ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
@@ -228,7 +228,7 @@ CREATE TABLE userdb.error_event(
     funds text,
     errorMessage text,
     PRIMARY KEY((userid), time)
-) WITH CLUSTERING ORDER BY (time DESC)
+) WITH CLUSTERING ORDER BY (time ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
@@ -256,7 +256,7 @@ CREATE TABLE userdb.debug_event(
     funds text,
     debugMessage text,
     PRIMARY KEY((userid), time)
-) WITH CLUSTERING ORDER BY (time DESC)
+) WITH CLUSTERING ORDER BY (time ASC)
     AND bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
