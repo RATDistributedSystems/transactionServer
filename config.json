@@ -1,8 +1,23 @@
 {
     "serverConfigs" : {
-        "listener" : {
+        "webserver" : {
             "address": "0.0.0.0",
             "port": "44440",
+            "protocol": "tcp"
+        },
+        "listener" : {
+            "address": "localhost",
+            "port": "44441",
+            "protocol": "tcp"
+        }, 
+        "audit" : {
+            "address": "localhost",
+            "port": "44442",
+            "protocol": "tcp"
+        }, 
+        "quote" : {
+            "address": "localhost",
+            "port": "44445",
             "protocol": "tcp"
         }
     },
