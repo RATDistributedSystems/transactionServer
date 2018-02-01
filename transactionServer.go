@@ -21,6 +21,7 @@ var transactionNumGlobal int
 var configurationServer = utilities.GetConfigurationFile("config.json")
 
 func main() {
+	transactionNumGlobal = 0
 	initServer()
 	initAuditConnection()
 	uuid.Init()
@@ -46,7 +47,6 @@ func initServer() {
 		panic(err)
 	}
 	sessionGlobal = session
-	transactionNumGlobal = 0
 	fmt.Println("Database Connection Created")
 }
 
@@ -90,49 +90,34 @@ func commandExecuter(command string) {
 	switch result[0] {
 	case "ADD":
 		addUser(result[1], result[2], transactionNumGlobal)
-
 	case "QUOTE":
 		quoteRequest(result[1], result[2], transactionNumGlobal)
-
 	case "BUY":
 		buy(result[1], result[2], result[3], transactionNumGlobal)
-
 	case "COMMIT_BUY":
 		commitBuy(result[1], transactionNumGlobal)
-
 	case "CANCEL_BUY":
 		cancelBuy(result[1], transactionNumGlobal)
-
 	case "SELL":
 		sell(result[1], result[2], result[3], transactionNumGlobal)
-
 	case "COMMIT_SELL":
 		commitSell(result[1], transactionNumGlobal)
-
 	case "CANCEL_SELL":
 		cancelSell(result[1], transactionNumGlobal)
-
 	case "SET_BUY_AMOUNT":
 		setBuyAmount(result[1], result[2], result[3], transactionNumGlobal)
-
 	case "SET_BUY_TRIGGER":
 		setBuyTrigger(result[1], result[2], result[3], transactionNumGlobal)
-
 	case "CANCEL_SET_BUY":
 		cancelBuyTrigger(result[1], result[2], transactionNumGlobal)
-
 	case "SET_SELL_AMOUNT":
 		setSellAmount(result[1], result[2], result[3], transactionNumGlobal)
-
 	case "SET_SELL_TRIGGER":
 		setSellTrigger(result[1], result[2], result[3], transactionNumGlobal)
-
 	case "CANCEL_SET_SELL":
 		cancelSellTrigger(result[1], result[2], transactionNumGlobal)
-
 	case "DISPLAY_SUMMARY":
 		displaySummary(result[1], transactionNumGlobal)
-
 	case "DUMPLOG":
 		if len(result) == 3 {
 			dumpUser(result[1], result[2], transactionNumGlobal)
