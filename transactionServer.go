@@ -1,440 +1,255 @@
 package main
 
 import (
-	"net"
-	"fmt"
 	"bufio"
-	"os"
-	"github.com/gocql/gocql"
+	"fmt"
+	"log"
+	"net"
 	"strconv"
 	"strings"
+
+	"github.com/RATDistributedSystems/utilities"
+	"github.com/gocql/gocql"
 	"github.com/twinj/uuid"
 	//"time"
 	//"github.com/go-redis/redis"
-	//"log"
 )
 
 const (
-    CONN_HOST = "localhost"
-    CONN_PORT = "3334"
-    CONN_TYPE = "tcp"
+	CONN_HOST = "localhost"
+	CONN_PORT = "3334"
+	CONN_TYPE = "tcp"
 )
 
 var sessionGlobal *gocql.Session
 var transactionNumGlobal int
+var configurationServer = utilities.GetConfigurationFile("config.json")
 
-func main(){
-	initializeServer()
+func main() {
+	initServer()
 	uuid.Init()
-	tcpListener();
-	//commandListener();
+	tcpListener()
 }
 
-func initializeServer(){
+func initServer() {
 	//connect to database
-	cluster := gocql.NewCluster("localhost")
-	cluster.Keyspace = "userdb"
-	cluster.ProtoVersion = 4
+	cluster := gocql.NewCluster(configurationServer.GetValue("cassandra_ip"))
+	cluster.Keyspace = configurationServer.GetValue("cassandra_keyspace")
+	proto, err := strconv.Atoi(configurationServer.GetValue("cassandra_proto"))
+	if err != nil {
+		panic("Cassandra protocol version not int")
+	}
+	cluster.ProtoVersion = proto
 	session, err := cluster.CreateSession()
 	if err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 	sessionGlobal = session
-	transactionNumGlobal = 0;
+	transactionNumGlobal = 0
 	fmt.Println("Database Connection Created")
 }
 
-
-func tcpListener(){
+func tcpListener() {
 	// Listen for incoming connections.
-	fmt.Println("TCP listner started")
-	l, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)
+	addr, protocol := configurationServer.GetServerDetails("listener")
+	l, err := net.Listen(protocol, addr)
 	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
+		panic(err)
 	}
-	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	defer l.Close()
+	log.Printf("Transaction server listening on %s", addr)
+
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
+			log.Panic(err)
 		}
 		// Handle connections in a new goroutine.
-		//<---------------------------NEW THREAD PER REQUEST----------------------------->>
 		go handleRequest(conn)
 	}
-	// Close the listener when the application closes.
-	defer l.Close()
+
 }
 
 func handleRequest(conn net.Conn) {
-  // will listen for message to process ending in newline (\n)
-    print("received request")
-    message, _ := bufio.NewReader(conn).ReadString('\n')
-    //remove new line character and any spaces received
-    message = strings.TrimSuffix(message, "\n")
-    message = strings.TrimSpace(message)
+	message, _ := bufio.NewReader(conn).ReadString('\n')
+	//remove new line character and any spaces received
+	message = strings.TrimSuffix(message, "\n")
+	message = strings.TrimSpace(message)
+	log.Printf("Recieved Request: %s", message)
 	commandExecuter(message)
-  	conn.Close()
+	conn.Close()
 }
 
-func getUsableCash(userId string) int{
+func getUsableCash(userId string) int {
 	var usableCash int
 	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
-			panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 	return usableCash
 }
 
+func commandExecuter(command string) {
+	result := strings.Split(command, ",")
+	//incrementing here since workload has no invalid entries
+	transactionNumGlobal++
 
+	switch result[0] {
+	case "ADD":
+		addUser(result[1], result[2], transactionNumGlobal)
 
-func commandExecuter(command string){
-		result := processCommand(command)
-		caseValue := result[0]
-		//incrementing here since workload has no invalid entries
-		transactionNumGlobal++
+	case "QUOTE":
+		quoteRequest(result[1], result[2], transactionNumGlobal)
 
-		switch caseValue {
-			case "ADD":
-				addUser(result[1],result[2],transactionNumGlobal)
+	case "BUY":
+		buy(result[1], result[2], result[3], transactionNumGlobal)
 
-			case "QUOTE":
-				quoteRequest(result[1],result[2],transactionNumGlobal)
+	case "COMMIT_BUY":
+		commitBuy(result[1], transactionNumGlobal)
 
-			case "BUY":
-				buy(result[1],result[2],result[3],transactionNumGlobal)
+	case "CANCEL_BUY":
+		cancelBuy(result[1], transactionNumGlobal)
 
-			case "COMMIT_BUY":
-				commitBuy(result[1],transactionNumGlobal)
+	case "SELL":
+		sell(result[1], result[2], result[3], transactionNumGlobal)
 
-			case "CANCEL_BUY":
-				cancelBuy(result[1],transactionNumGlobal)
+	case "COMMIT_SELL":
+		commitSell(result[1], transactionNumGlobal)
 
-			case "SELL":
-				sell(result[1],result[2],result[3],transactionNumGlobal)
+	case "CANCEL_SELL":
+		cancelSell(result[1], transactionNumGlobal)
 
-			case "COMMIT_SELL":
-				commitSell(result[1],transactionNumGlobal)
+	case "SET_BUY_AMOUNT":
+		setBuyAmount(result[1], result[2], result[3], transactionNumGlobal)
 
-			case "CANCEL_SELL":
-				cancelSell(result[1],transactionNumGlobal)
+	case "SET_BUY_TRIGGER":
+		setBuyTrigger(result[1], result[2], result[3], transactionNumGlobal)
 
-			case "SET_BUY_AMOUNT":
-				setBuyAmount(result[1],result[2],result[3],transactionNumGlobal)
+	case "CANCEL_SET_BUY":
+		cancelBuyTrigger(result[1], result[2], transactionNumGlobal)
 
-			case "SET_BUY_TRIGGER":
-				setBuyTrigger(result[1],result[2],result[3],transactionNumGlobal)
+	case "SET_SELL_AMOUNT":
+		setSellAmount(result[1], result[2], result[3], transactionNumGlobal)
 
-			case "CANCEL_SET_BUY":
-				cancelBuyTrigger(result[1],result[2],transactionNumGlobal)
-		
-			case "SET_SELL_AMOUNT":
-				setSellAmount(result[1],result[2],result[3],transactionNumGlobal)
-		
-			case "SET_SELL_TRIGGER":
-				setSellTrigger(result[1],result[2],result[3],transactionNumGlobal)
-		
-			case "CANCEL_SET_SELL":
-				cancelSellTrigger(result[1],result[2],transactionNumGlobal)
-		
-			case "DISPLAY_SUMMARY":
-				displaySummary(result[1], transactionNumGlobal)
+	case "SET_SELL_TRIGGER":
+		setSellTrigger(result[1], result[2], result[3], transactionNumGlobal)
 
-			case "DUMPLOG":
-				if len(result) == 3{
-					dumpUser(result[1],result[2])
-				} else if len(result) == 2{
-					dump(result[1])
-				}
+	case "CANCEL_SET_SELL":
+		cancelSellTrigger(result[1], result[2], transactionNumGlobal)
+
+	case "DISPLAY_SUMMARY":
+		displaySummary(result[1], transactionNumGlobal)
+
+	case "DUMPLOG":
+		if len(result) == 3 {
+			dumpUser(result[1], result[2])
+		} else if len(result) == 2 {
+			dump(result[1])
 		}
-
-}
-/*
-func commandListener(){
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter a command: ")
-		text, _ := reader.ReadString('\n')
-		fmt.Println(text)
-
-		result := processCommand(text)
-
-		if result[0] == "ADD"{
-			addUser(result[1],result[2])
-		}
-
-		if result[0] == "QUOTE"{
-			quoteRequest(result[1],result[2])
-		}
-
-		if result[0] == "BUY"{
-			buy(result[1],result[2],result[3])
-		}
-
-		if result[0] == "BUY_COMMIT"{
-			commitBuy(result[1])
-		}
-
-		if result[0] == "CANCEL_BUY"{
-			cancelBuy(result[1])
-		}
-
-		if result[0] == "SELL"{
-			sell(result[1],result[2],result[3])
-		}
-
-		if result[0] == "SELL_COMMIT"{
-			fmt.Println(len(result))
-			commitSell(result[1])
-		}
-
-		if result[0] == "CANCEL_SELL"{
-			cancelSell(result[1])
-		}
-
-		if result[0] == "SET_BUY_AMOUNT"{
-			fmt.Println(len(result))
-			setBuyAmount(result[1],result[2],result[3])
-		}
-
-		if result[0] == "SET_BUY_TRIGGER"{
-			fmt.Println(len(result))
-			setBuyTrigger(result[1],result[2],result[3])
-		}
-
-		if result[0] == "SET_SELL_AMOUNT"{
-			fmt.Println(len(result))
-			setSellAmount(result[1],result[2],result[3])
-		}
-
-		if result[0] == "SET_SELL_TRIGGER"{
-			fmt.Println(len(result))
-			setSellTrigger(result[1],result[2],result[3])
-		}
-		if result[0] == "CANCEL_SELL_TRIGGER"{
-			fmt.Println(len(result))
-			cancelSellTrigger(result[1],result[2])
-		}
-		if result[0] == "CANCEL_BUY_TRIGGER"{
-			fmt.Println(len(result))
-			cancelBuyTrigger(result[1],result[2])
-		}
-
-		if result[0] == "DUMPLOG"{
-			if len(result) == 3{
-				dumpUser(result[1],result[2])
-			} else if len(result) == 2{
-				dump(result[1])
-			}
-		}
-
-
 	}
-}
-*/
-func processCommand(text string) []string{
-	result := strings.Split(text, ",")
-	for i := range result {
-		fmt.Println(result[i])
-	}
-	return result;
+
 }
 
-
-
-
-func stringToCents(x string) int{
-
-	var dollars int
-	var cents int
-
-	fmt.Println(x)
+func stringToCents(x string) int {
 	result := strings.Split(x, ".")
-	for i := range result {
-		fmt.Println(result[i])
+	dollars, err := strconv.Atoi(result[0])
+	if err != nil {
+		log.Printf("Couldn't convert %s to int", result[0])
+		return 0
 	}
 
-	if i, err := strconv.Atoi(result[0]); err == nil {
-		dollars = i
-		fmt.Println("dollar converted to int")
-		fmt.Println(i)
+	cents, err := strconv.Atoi(strings.TrimSuffix(result[1], "\n"))
+	if err != nil {
+		log.Printf("Couldn't convert %s to int", result[1])
+		return 0
 	}
 
-	result[1] = strings.TrimSuffix(result[1], "\n")
-	if e, err := strconv.Atoi(result[1]); err == nil {
-		cents = e
-		fmt.Println("cents converted to int")
-		fmt.Println(e)
-	}
-
-	dollars = dollars * 100
-	var money int = dollars + cents
-
-	return money
+	return (dollars * 100) + cents
 }
 
 //chekcs if the command can be executed
 //ie check if buy set before commit etc
-func checkDependency(command string, userId string, stock string) bool{
+func checkDependency(command string, userId string, stock string) bool {
 
-	var count int
-
-	if command == "COMMIT_BUY"{
-		//check if a buy entry exists in buypendingtransactions table
-
-		if err := sessionGlobal.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
-			panic(fmt.Sprintf("problem creating session", err))
-		}
-		if count == 0{
-			return false
-
-		}else{
-
-			return true
-		}
-	}
-	if command == "COMMIT_SELL"{
-		//check if a sell entry exists in sellpendingtransactions table
-			//check if a sell entry exists in buypendingtransactions table
-
-			if err := sessionGlobal.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
-				panic(fmt.Sprintf("problem creating session", err))
-			}
-			if count == 0{
-				return false
-			}else{
-				return true
-			}
-	}
-	if command == "CANCEL_BUY"{
-		//check if a buy entry exists in buypendingtransactions table
-		if err := sessionGlobal.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
-			panic(fmt.Sprintf("problem creating session", err))
-		}
-		if count == 0{
-			return false
-		}else{
-			return true
-		}
-
-		
-	}
-	if command == "CANCEL_SELL"{
-		//check if a sell entry exists in sellpendingtransactions table
-		if err := sessionGlobal.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count); err != nil {
-			panic(fmt.Sprintf("problem creating session", err))
-		}
-		if count == 0{
-			return false
-		}else{
-			return true
-		}
-		
-	}
-	if command == "CANCEL_SET_BUY"{
-		if err := sessionGlobal.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
-			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
-		}
-		if count == 0{
-			return false
-		}else{
-			return true
-		}
-	}
-	if command == "CANCEL_SET_SELL"{
-		if err := sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
-			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
-		}
-		if count == 0{
-			return false
-		}else{
-			return true
-		}
-		
+	count := 0
+	var err error = nil
+	switch command {
+	case "COMMIT_BUY":
+		err = sessionGlobal.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count)
+	case "COMMIT_SELL":
+		err = sessionGlobal.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count)
+	case "CANCEL_BUY":
+		sessionGlobal.Query("SELECT count(*) FROM buypendingtransactions WHERE userId='" + userId + "'").Scan(&count)
+	case "CANCEL_SELL":
+		err = sessionGlobal.Query("SELECT count(*) FROM sellpendingtransactions WHERE userId='" + userId + "'").Scan(&count)
+	case "CANCEL_SET_BUY":
+		err = sessionGlobal.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count)
+	case "CANCEL_SET_SELL":
+		err = sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count)
 	}
 
-	return false
+	if err != nil {
+		panic(err)
+	}
+	return count != 0
 }
 
-func addFunds(userId string, addCashAmount int){
+func addFunds(userId string, addCashAmount int) {
 
 	var usableCash int
 
 	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
-	totalCash := usableCash + addCashAmount;
+	totalCash := usableCash + addCashAmount
 	totalCashString := strconv.FormatInt(int64(totalCash), 10)
 
 	//return add funds to user
 	if err := sessionGlobal.Query("UPDATE users SET usableCash =" + totalCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 }
 
-
-
-
-
-
-
-
 //check if the trigger hasn't been cancelled
-func checkTriggerExists(userId string, stock string, operation bool) bool{
-
+func checkTriggerExists(userId string, stock string, isBuyOperation bool) bool {
 
 	var count int
 
-	if operation == true {
-		if err := sessionGlobal.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
-			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
+	if isBuyOperation == true {
+		if err := sessionGlobal.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil {
+			panic(err)
 		}
-	}else{
-		if err := sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil{
-			panic(fmt.Sprintf("Problem inputting to buyTriggers Table", err))
+	} else {
+		if err := sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil {
+			panic(err)
 		}
 	}
 
-	if count == 1 {
-		return true
-	}else{
-		return false
-	}
+	return count == 1
 }
 
-
-
-
-
-
-
-
-
-func checkStockOwnership(userId string, stock string) (int, string){
+func checkStockOwnership(userId string, stock string) (int, string) {
 
 	var ownedstockname string
 	var ownedstockamount int
 	var usid string
 	//var hasStock bool
 
-	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
+	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
 	for iter.Scan(&usid, &ownedstockname, &ownedstockamount) {
-		if (ownedstockname == stock){
+		if ownedstockname == stock {
 			//hasStock = true
-			break;
+			break
 		}
 	}
 	if err := iter.Close(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 	//returns 0 if stock is empty
 	return ownedstockamount, usid
-	
-}
 
+}
