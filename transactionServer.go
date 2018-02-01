@@ -28,8 +28,9 @@ func main() {
 	tcpListener()
 }
 
-func initAuditConnection(){
-	conn, _ := net.Dial("tcp", "localhost:44445")
+func initAuditConnection() {
+	addr, protocol := configurationServer.GetServerDetails("audit")
+	conn, _ := net.Dial(protocol, addr)
 	logConnection = conn
 }
 
