@@ -1,31 +1,26 @@
 package main
 
 import (
-	//"net"
 	"fmt"
-	//"github.com/go-redis/redis"
-	//"log"
-	"time"
+	"log"
 	"strconv"
+	"time"
 )
 
-func dumpUser(userId string, filename string, transactionNum int){
+func dumpUser(userId string, filename string, transactionNum int) {
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "DUMPLOG", "-1", "", "")
-	fmt.Println("In Dump user")
-	//conn, _ := net.Dial("tcp", "localhost:44445")
-	text := "DUMPLOG" + "," + userId + "," + filename
-	fmt.Fprintf(logConnection,text + "\n") 
+	log.Printf("Dumping log data for %s\n", userId)
+	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG, %s, %s", userId, filename))
 }
 
-func dump(filename string, transactionNum int){
+func dump(filename string, transactionNum int) {
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "DUMPLOG", "-1", "", "")
-	//conn, _ := net.Dial("tcp", "localhost:44445")
-	text := "DUMPLOG" + "," + filename
-	fmt.Fprintf(logConnection,text + "\n") 
+	log.Println("Dumping all log data")
+	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG, %s", filename))
 }

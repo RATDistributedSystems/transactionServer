@@ -1,29 +1,20 @@
 package main
 
-
 //import "net"
-import "fmt"
-//import "bufio"
-//import "os"
-//import "github.com/gocql/gocql"
-//import "strconv"
-//import "strings"
-//import "github.com/go-redis/redis"
-//import "github.com/twinj/uuid"
-//import "time"
-//import "log"
-
+import (
+	"fmt"
+	"net"
+)
 
 func sendMsgToAuditServer(msg string) {
-	//addr, protocol := configurationServer.GetServerDetails("audit")
-	//conn, err := net.Dial(protocol, addr)
-	//if err != nil {
+	addr, protocol := configurationServer.GetServerDetails("audit")
+	conn, err := net.Dial(protocol, addr)
+	if err != nil {
 		//log.Fatalf("Couldn't Connect to Audit server: " + err.Error())
-	//}
-	//defer conn.Close()
-	fmt.Fprintln(logConnection, msg)
+	}
+	defer conn.Close()
+	fmt.Fprintln(conn, msg)
 }
-
 
 func logUserEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string) {
 	msg := fmt.Sprintf("User, %s, %s, %s, %s, %s, %s, %s", time, server, transactionNum, command, userid, stockSymbol, funds)
