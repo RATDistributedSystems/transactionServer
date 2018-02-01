@@ -23,6 +23,6 @@ func displaySummary(userId string, transactionNum int){
 			panic(fmt.Sprintf("problem creating session", err))
 	}
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logAccountTransactionEvent(timestamp_command, "TS1", transactionNum_string, "DISPLAY_SUMMARY", userId, usableCashString)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "DISPLAY_SUMMARY", userId, "", usableCashString)
+	//logAccountTransactionEvent(timestamp_command, "TS1", transactionNum_string, "DISPLAY_SUMMARY", userId, usableCashString)
+	logUserEvent(timestamp_command, "TS1", transactionNum_string, "DISPLAY_SUMMARY", userId, "", "")
 }

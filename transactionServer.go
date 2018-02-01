@@ -15,12 +15,6 @@ import (
 	//"github.com/go-redis/redis"
 )
 
-const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "3334"
-	CONN_TYPE = "tcp"
-)
-
 var sessionGlobal *gocql.Session
 var transactionNumGlobal int
 var configurationServer = utilities.GetConfigurationFile("config.json")
@@ -81,15 +75,6 @@ func handleRequest(conn net.Conn) {
 	conn.Close()
 }
 
-func getUsableCash(userId string) int {
-	var usableCash int
-	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
-		panic(err)
-	}
-
-	return usableCash
-}
-
 func commandExecuter(command string) {
 	result := strings.Split(command, ",")
 	//incrementing here since workload has no invalid entries
@@ -143,9 +128,9 @@ func commandExecuter(command string) {
 
 	case "DUMPLOG":
 		if len(result) == 3 {
-			dumpUser(result[1], result[2])
+			dumpUser(result[1], result[2], transactionNumGlobal)
 		} else if len(result) == 2 {
-			dump(result[1])
+			dump(result[1], transactionNumGlobal)
 		}
 	}
 
@@ -195,14 +180,17 @@ func checkDependency(command string, userId string, stock string) bool {
 	return count != 0
 }
 
-func addFunds(userId string, addCashAmount int) {
-
+func getUsableCash(userId string) int {
 	var usableCash int
-
 	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
 		panic(err)
 	}
 
+	return usableCash
+}
+
+func addFunds(userId string, addCashAmount int) {
+	usableCash := getUsableCash(userId)
 	totalCash := usableCash + addCashAmount
 	totalCashString := strconv.FormatInt(int64(totalCash), 10)
 
