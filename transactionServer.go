@@ -16,13 +16,20 @@ import (
 )
 
 var sessionGlobal *gocql.Session
+var logConnection net.Conn
 var transactionNumGlobal int
 var configurationServer = utilities.GetConfigurationFile("config.json")
 
 func main() {
 	initServer()
+	initAuditConnection()
 	uuid.Init()
 	tcpListener()
+}
+
+func initAuditConnection(){
+	conn, _ := net.Dial("tcp", "localhost:44445")
+	logConnection = conn
 }
 
 func initServer() {
