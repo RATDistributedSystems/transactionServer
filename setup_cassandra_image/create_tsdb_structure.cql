@@ -111,3 +111,8 @@ CREATE TABLE userdb.sellpendingtransactions (
     AND min_index_interval = 128
     AND read_repair_chance = 0.0
     AND speculative_retry = '99PERCENTILE';
+    
+    
+create table buyTriggers (tid uuid, userId varchar, stock varchar, pendingCash int, triggerValue int, stockAmount int, pendingStocks int, primary key (userId, stock));
+
+create table sellTriggers (tid uuid, userId varchar, stock varchar, pendingCash int, triggerValue int, stockAmount int, pendingStocks int, primary key (userId, stock));
