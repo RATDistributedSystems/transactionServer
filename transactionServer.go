@@ -52,7 +52,7 @@ func initServer() {
 
 func tcpListener() {
 	// Listen for incoming connections.
-	addr, protocol := configurationServer.GetServerDetails("listener")
+	addr, protocol := configurationServer.GetServerDetails("transaction")
 	l, err := net.Listen(protocol, addr)
 	if err != nil {
 		panic(err)

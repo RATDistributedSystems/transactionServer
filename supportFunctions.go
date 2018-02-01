@@ -14,33 +14,23 @@ import (
 	"log"
 )
 
-func processCommand(text string) []string{
-	result := strings.Split(text, ",")
-	for i := range result {
-		fmt.Println(result[i])
-	}
-	return result;
-}
-
-
-func getUsableCash(userId string) int{
+func getUsableCash(userId string) int {
 	var usableCash int
 	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {
-			panic(fmt.Sprintf("problem creating session", err))
+		panic(fmt.Sprintf("problem creating session", err))
 	}
 	return usableCash
 }
 
-
 func stringToCents(x string) int {
 	result := strings.Split(x, ".")
-	dollars, err := strconv.Atoi(result[0])
+	dollars, err := strconv.Atoi(strings.TrimSpace(result[0]))
 	if err != nil {
 		log.Printf("Couldn't convert %s to int", result[0])
 		return 0
 	}
 
-	cents, err := strconv.Atoi(strings.TrimSuffix(result[1], "\n"))
+	cents, err := strconv.Atoi(strings.TrimSpace(result[1]))
 	if err != nil {
 		log.Printf("Couldn't convert %s to int", result[1])
 		return 0
@@ -75,7 +65,6 @@ func checkDependency(command string, userId string, stock string) bool {
 	}
 	return count != 0
 }
-
 
 func addFunds(userId string, addCashAmount int) {
 	usableCash := getUsableCash(userId)
@@ -129,4 +118,3 @@ func checkStockOwnership(userId string, stock string) (int, string) {
 	return ownedstockamount, usid
 
 }
-
