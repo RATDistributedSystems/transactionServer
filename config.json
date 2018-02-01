@@ -5,7 +5,7 @@
             "port": "44440",
             "protocol": "tcp"
         },
-        "listener" : {
+        "transaction" : {
             "address": "localhost",
             "port": "44441",
             "protocol": "tcp"
