@@ -16,7 +16,7 @@ import (
 
 const (
     CONN_HOST = "localhost"
-    CONN_PORT = "3334"
+    CONN_PORT = "44441"
     CONN_TYPE = "tcp"
 )
 
@@ -93,6 +93,7 @@ func getUsableCash(userId string) int{
 
 func commandExecuter(command string){
 		result := processCommand(command)
+		fmt.Println(command)
 		caseValue := result[0]
 		//incrementing here since workload has no invalid entries
 		transactionNumGlobal++
@@ -145,9 +146,9 @@ func commandExecuter(command string){
 
 			case "DUMPLOG":
 				if len(result) == 3{
-					dumpUser(result[1],result[2])
+					dumpUser(result[1],result[2], transactionNumGlobal)
 				} else if len(result) == 2{
-					dump(result[1])
+					dump(result[1], transactionNumGlobal)
 				}
 		}
 
