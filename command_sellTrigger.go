@@ -138,7 +138,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int,trans
 				}
 
 				//delete trigger
-				if err := sessionGlobal.Query("DELETE FROM sellTriggers WHERE userId=" + userId + " AND stock='" + stock + "'").Exec(); err != nil {
+				if err := sessionGlobal.Query("DELETE FROM sellTriggers WHERE userId='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 			}
