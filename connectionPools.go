@@ -28,7 +28,6 @@ var (
 	globalPool connectionPool
 	connectionAmount int
 	connectionMax int
-
 )
 
 func initializePool(connAmount int, connMax int){
@@ -91,7 +90,6 @@ func (* connectionPool) returnConnection(conn net.Conn){
 }
 
 func openNewConnection(){
-		globalPool.mux.Lock()
 		fmt.Printf("No connections in queue")
 		addr, protocol := configurationServer.GetServerDetails("audit")
 		conn, err := net.Dial(protocol, addr)
@@ -100,5 +98,4 @@ func openNewConnection(){
 		}
 		globalPool.activeConns++
 		globalPool.freeConnections = append(globalPool.freeConnections, conn)
-		globalPool.mux.Unlock()
 }
