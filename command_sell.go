@@ -37,7 +37,7 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logQuoteEvent(timestamp_quote,"TS1",transactionNum_string,message[0],message[1],userId,message[3],message[4])
 	*/
-	fmt.Println(message[0])
+	//fmt.Println(message[0])
 	stockValue = stringToCents(message[0])
 
 	//check if user has enough stocks for a SELL
@@ -54,15 +54,15 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 	if err := iter.Close(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	println(hasStock)
+	//println(hasStock)
 	if (!hasStock){
 		
 		return
 	}
-	fmt.Println(stockname, stockamount)
-	fmt.Println("\n" + userId);
+	//fmt.Println(stockname, stockamount)
+	//fmt.Println("\n" + userId);
 	usableStocks = stockamount
-	fmt.Println(usableStocks);
+	//fmt.Println(usableStocks);
 
 	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
@@ -81,20 +81,20 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 		return 
 	}
 	sellableStocks := sellStockDollars/stockValue
-	print("total sellable stocks ")
-	fmt.Println(sellableStocks)
+	//print("total sellable stocks ")
+	//fmt.Println(sellableStocks)
 	//if has enough stock for desired sell amount, set aside stocks from db
 	usableStocks = usableStocks - sellableStocks;
 	usableStocksString := strconv.FormatInt(int64(usableStocks),10)
-	fmt.Println("set stocks to " + usableStocksString)
+	//fmt.Println("set stocks to " + usableStocksString)
 	pendingCash := sellableStocks * stockValue;
 	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
-	fmt.Println("Available Stocks is greater than sell amount");
+	//fmt.Println("Available Stocks is greater than sell amount");
 	if err := sessionGlobal.Query("UPDATE userstocks SET stockamount =" + usableStocksString + " WHERE usid=" + usid).Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	fmt.Println("Stocks allocated");
+	//fmt.Println("Stocks allocated");
 
 	u := uuid.NewV1()
 	/*
@@ -102,7 +102,7 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 	u := uuid.NewV4()
 	*/
 	f := uuid.Formatter(u, uuid.FormatCanonical)
-	fmt.Println(f)
+	//fmt.Println(f)
 	
 	//tm := time.Now()
 
@@ -121,12 +121,12 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 
 
 func updateStateSell(userId string, uuid string, usid string){
-	print("In update sell")
+	//print("In update sell")
 	timer1 := time.NewTimer(time.Second * 62)
 
 	<-timer1.C
-    fmt.Println("Timer1 has expired for SELL command")
-	fmt.Println("User stocks will be returned")
+    //fmt.Println("Timer1 has expired for SELL command")
+	//fmt.Println("User stocks will be returned")
 
 	var pendingCash int
 	var pendingStocks int

@@ -21,8 +21,8 @@ func setSellAmount(userId string, stock string, pendingCashString string,transac
 
 	pendingCashCents := stringToCents(pendingCashString)
 	//check if user owns stock
-	ownedStockAmount, usid := checkStockOwnership(userId, stock)
-	fmt.Println(usid)
+	ownedStockAmount, _ := checkStockOwnership(userId, stock)
+	//fmt.Println(usid)
 
 	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000

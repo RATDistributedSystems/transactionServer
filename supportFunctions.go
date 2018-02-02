@@ -43,7 +43,7 @@ func stringToCents(x string) int {
 //ie check if buy set before commit etc
 func checkDependency(command string, userId string, stock string) bool {
 
-	count := 0
+	var count int
 	var err error = nil
 	switch command {
 	case "COMMIT_BUY":
