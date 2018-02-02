@@ -17,85 +17,82 @@ import (
 
 
 type connectionPool struct{
-	name string
+	serverName string
 	activeConns int
+	connMax int
 	freeConnections []net.Conn
 	mux sync.Mutex
-	
 }
 
-var (
-	globalPool connectionPool
-	connectionAmount int
-	connectionMax int
-)
 
-func initializePool(connAmount int, connMax int){
-	connectionAmount = connAmount
-	connectionMax = connMax
-	globalPool.freeConnections = make([]net.Conn, connectionMax)
+func initializePool(connAmount int, connMax int, serverName string) connectionPool{
+	var connPool connectionPool
+	connPool.freeConnections = make([]net.Conn, connMax)
+	connPool.serverName = serverName
+	connPool.connMax = connMax
 
 	i := 0
 
 	//create "connAmount" of connections
-	for i < connectionAmount{
+	for i < connAmount{
 		fmt.Println("loopnumber")
 		fmt.Println(i)
-		addr, protocol := configurationServer.GetServerDetails("audit")
+		addr, protocol := configurationServer.GetServerDetails(serverName)
 		conn, err := net.Dial(protocol, addr)
 		if err != nil {
 			log.Fatalf("Couldn't Connect to Audit server: " + err.Error())
 		}
-		globalPool.activeConns++
-		globalPool.freeConnections[i] = conn
+		connPool.activeConns++
+		connPool.freeConnections[i] = conn
 		i++
 	}
+	return connPool
 }
 
 
-func (* connectionPool) getConnection() net.Conn{
-	globalPool.mux.Lock()
-	if(len(globalPool.freeConnections) > 0){
+func (c * connectionPool) getConnection() net.Conn{
+	c.mux.Lock()
+	if(len(c.freeConnections) > 0){
 
 		//retrieve first in queue
-		conn := globalPool.freeConnections[0]
+		conn := c.freeConnections[0]
 		//remove first in queue
-		globalPool.freeConnections = globalPool.freeConnections[1:]
+		c.freeConnections = c.freeConnections[1:]
 		//decremement active conns
-		globalPool.mux.Unlock()
+		c.mux.Unlock()
 		return conn
 
-	}else if (len(globalPool.freeConnections) < connectionMax) {
+	}else if (len(c.freeConnections) < c.connMax) {
 		//if no more usable connections make a new one
-		openNewConnection()
+		c.openNewConnection()
 		//retrieve first in queue
-		conn := globalPool.freeConnections[0]
+		conn := c.freeConnections[0]
 		//remove first in queue
-		globalPool.freeConnections = globalPool.freeConnections[1:]
+		c.freeConnections = c.freeConnections[1:]
 		//decremement active conns
-		globalPool.mux.Unlock()
+		c.mux.Unlock()
 		return conn
 	}
 
-	globalPool.mux.Unlock()
+	c.mux.Unlock()
 	return nil
 }
 
-func (* connectionPool) returnConnection(conn net.Conn){
-	globalPool.mux.Lock()
+func (c * connectionPool) returnConnection(conn net.Conn){
+	c.mux.Lock()
 	fmt.Println("returningConnection")
-	fmt.Println(len(globalPool.freeConnections))
-	globalPool.freeConnections = append(globalPool.freeConnections, conn)
-	globalPool.mux.Unlock()
+	fmt.Println(len(c.freeConnections))
+	c.freeConnections = append(c.freeConnections, conn)
+	c.mux.Unlock()
 }
 
-func openNewConnection(){
+func (c * connectionPool) openNewConnection(){
 		fmt.Printf("No connections in queue")
-		addr, protocol := configurationServer.GetServerDetails("audit")
+		addr, protocol := configurationServer.GetServerDetails(c.serverName)
 		conn, err := net.Dial(protocol, addr)
 		if err != nil {
 			log.Fatalf("Could not make another connection" + err.Error())
 		}
-		globalPool.activeConns++
-		globalPool.freeConnections = append(globalPool.freeConnections, conn)
+		c.activeConns++
+		c.freeConnections = append(c.freeConnections, conn)
 }

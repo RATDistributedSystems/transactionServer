@@ -9,16 +9,9 @@ import (
 )
 
 func sendMsgToAuditServer(msg string) {
-	//addr, protocol := configurationServer.GetServerDetails("audit")
-	//conn, err := net.Dial(protocol, addr)
-	//if err != nil {
-		//log.Fatalf("Couldn't Connect to Audit server: " + err.Error())
-	//}
-	//defer conn.Close()
-	conn := globalPool.getConnection()
-	//fmt.Fprintf(conn, msg + "\n")
+	conn := auditPool.getConnection()
 	fmt.Println(conn, msg)
-	globalPool.returnConnection(conn)
+	auditPool.returnConnection(conn)
 }
 
 func logUserEvent(server string, transactionNum int, command string, userid string, stockSymbol string, funds string) {
