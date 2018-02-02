@@ -83,9 +83,11 @@ func (* connectionPool) getConnection() net.Conn{
 }
 
 func (* connectionPool) returnConnection(conn net.Conn){
+	globalPool.mux.Lock()
 	fmt.Println("returningConnection")
 	fmt.Println(len(globalPool.freeConnections))
 	globalPool.freeConnections = append(globalPool.freeConnections, conn)
+	globalPool.mux.Unlock()
 }
 
 func openNewConnection(){
