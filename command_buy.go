@@ -30,16 +30,13 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 
 	timestamp_q := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_quote := strconv.FormatInt(timestamp_q, 10)
-	//transactionNum_quote += 1
-	//transactionNum_quote_string := strconv.FormatInt(int64(transactionNum_quote), 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
 	logQuoteEvent(timestamp_quote, "TS1", transactionNum_string, message[0], message[1], userId, message[3], message[4])
-
+	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "BUY", userId, stock, pendingCashString)
+	*/
 
 	fmt.Println(message[0])
 	stockValueQuoteString := message[0]

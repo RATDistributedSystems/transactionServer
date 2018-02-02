@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 	//"github.com/twinj/uuid"
-	"time"
+	//"time"
 	//"github.com/go-redis/redis"
 	//"log"
 )
@@ -22,12 +22,14 @@ func commitSell(userId string,transactionNum int){
 	var stock string
 	userId = strings.TrimSuffix(userId, "\n")
 
-		timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	/*
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "COMMIT_SELL", userId, stock, "")
+	*/
 
 	sellExists := checkDependency("COMMIT_SELL",userId,"none")
 	if(sellExists == false){

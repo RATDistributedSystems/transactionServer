@@ -9,7 +9,7 @@ import (
 	"strconv"
 	//"strings"
 	"github.com/twinj/uuid"
-	"time"
+	//"time"
 	//"github.com/go-redis/redis"
 	//"log"
 )
@@ -30,12 +30,14 @@ func setBuyAmount(userId string, stock string, pendingCashString string,transact
 	//convert pendingCash from string to int of cents
 	pendingCash := stringToCents(pendingCashString)
 
-		timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	/*
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_BUY_AMOUNT", userId, stock, pendingCashString)
+	*/
 
 
 	if err := sessionGlobal.Query("select usableCash from users where userid='" + userId + "'").Scan(&usableCash); err != nil {

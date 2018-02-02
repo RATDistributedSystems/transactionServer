@@ -27,12 +27,12 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string,t
 
 	//set the triggerValue and create thread to check the quote server
 
+	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
+	*/
 
 	if err := sessionGlobal.Query("UPDATE buyTriggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem setting trigger", err))

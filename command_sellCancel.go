@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 	//"github.com/twinj/uuid"
-	"time"
+	//"time"
 	//"github.com/go-redis/redis"
 	//"log"
 )
@@ -28,10 +28,12 @@ func cancelSell(userId string,transactionNum int){
 
 	userId = strings.TrimSuffix(userId, "\n")
 
+	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SELL", userId, "", "")
+	*/
 
 	sellExists := checkDependency("CANCEL_SELL",userId,"none")
 	if(sellExists == false){

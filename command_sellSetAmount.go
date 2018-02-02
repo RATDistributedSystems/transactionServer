@@ -9,7 +9,7 @@ import (
 	"strconv"
 	//"strings"
 	"github.com/twinj/uuid"
-	"time"
+	//"time"
 	//"github.com/go-redis/redis"
 	//"log"
 )
@@ -24,10 +24,12 @@ func setSellAmount(userId string, stock string, pendingCashString string,transac
 	ownedStockAmount, usid := checkStockOwnership(userId, stock)
 	fmt.Println(usid)
 
+	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_AMOUNT", userId, stock, pendingCashString)
+	*/
 
 	if(ownedStockAmount == 0){
 		fmt.Println("Cannot Sell a stock you don't own")

@@ -21,12 +21,13 @@ func setSellTrigger(userId string, stock string, stockSellPrice string,transacti
 
 	stockSellPriceCents := stringToCents(stockSellPrice)
 	stockSellPriceCentsString := strconv.FormatInt(int64(stockSellPriceCents), 10)
-
+	/*
 
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
+	*/
 
 	//check if set sell amount is set for this particular stock
 	var count int

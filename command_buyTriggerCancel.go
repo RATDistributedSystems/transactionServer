@@ -6,10 +6,10 @@ import (
 	//"bufio"
 	//"os"
 	//"github.com/gocql/gocql"
-	"strconv"
+	//"strconv"
 	//"strings"
 	//"github.com/twinj/uuid"
-	"time"
+	//"time"
 	//"github.com/go-redis/redis"
 	//"log"
 )
@@ -17,12 +17,12 @@ import (
 
 //cancel any buy triggers as well as buy_sell_amounts
 func cancelBuyTrigger(userId string, stock string,transactionNum int){
-
+	/*
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "CANCEL_SET_BUY", userId, stock, "")
-
+	*/
 	buyExists := checkDependency("CANCEL_SET_BUY",userId,stock)
 
 	if(buyExists == false){

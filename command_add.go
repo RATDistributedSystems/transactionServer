@@ -25,11 +25,9 @@ func addUser(userId string, usableCashString string,transactionNum int){
 
 	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
+	//transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
 	logAccountTransactionEvent(timestamp_command, "TS1", "1", "ADD", userId, usableCashString)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "ADD", userId, "", usableCashString)
+	//logUserEvent(timestamp_command, "TS1", transactionNum_string, "ADD", userId, "", usableCashString)
 
 	if err := sessionGlobal.Query("SELECT count(*) FROM users WHERE userid='" + userId + "'").Scan(&count); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))

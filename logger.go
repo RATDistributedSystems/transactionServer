@@ -4,6 +4,8 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
+	"strconv"
 )
 
 func sendMsgToAuditServer(msg string) {
@@ -16,8 +18,11 @@ func sendMsgToAuditServer(msg string) {
 	fmt.Fprintln(conn, msg)
 }
 
-func logUserEvent(time string, server string, transactionNum string, command string, userid string, stockSymbol string, funds string) {
-	msg := fmt.Sprintf("User, %s, %s, %s, %s, %s, %s, %s", time, server, transactionNum, command, userid, stockSymbol, funds)
+func logUserEvent(server string, transactionNum int, command string, userid string, stockSymbol string, funds string) {
+	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
+	time := strconv.FormatInt(timestamp_time, 10)
+	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
+	msg := fmt.Sprintf("User, %s, %s, %s, %s, %s, %s, %s", time, server, transactionNum_string, command, userid, stockSymbol, funds)
 	sendMsgToAuditServer(msg)
 }
 
