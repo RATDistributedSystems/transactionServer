@@ -37,7 +37,7 @@ func setSellTrigger(userId string, stock string, stockSellPrice string,transacti
 
 	//if set sell amount isnt set return
 	if count == 0 {
-		fmt.Println("No set Sell amount placed")
+		//fmt.Println("No set Sell amount placed")
 		return
 	}
 

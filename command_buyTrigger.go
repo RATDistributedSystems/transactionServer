@@ -21,7 +21,7 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string,t
 
 	//convert trigger price from string to int cents
 	stockPriceTrigger := stringToCents(stockPriceTriggerString)
-	fmt.Println(stockPriceTrigger);
+	//fmt.Println(stockPriceTrigger);
 
 	stockPriceTriggerString = strconv.FormatInt(int64(stockPriceTrigger), 10)
 
@@ -66,10 +66,12 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 		message := quoteRequest(userId, stock,transactionNum)
 		currentStockPrice := stringToCents(message[0])
 
+		/*
 		fmt.Println("Trigger value")
 		fmt.Println(stockPriceTrigger)
 		fmt.Println("quote price")
 		fmt.Println(currentStockPrice)
+		*/
 
 		//execute the buy instantly if trigger condition is true
 		if(currentStockPrice <= stockPriceTrigger){
@@ -154,16 +156,20 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 
 				//IF USE DOESNT OWN ANY OF THIS STOCK
 				//calculate amount of stocks can be bought
+				if stockValue == 0 {
+					return
+				}
+
 				buyableStocks := pendingCash / stockValue
-				fmt.Println("buyable stock amount")
-				fmt.Println(buyableStocks)
+				//fmt.Println("buyable stock amount")
+				//fmt.Println(buyableStocks)
 				//remaining money
 				remainingCash = pendingCash - (buyableStocks * stockValue)
 
 				buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
 
-				fmt.Println("buyable stock string amount")
-				fmt.Println(buyableStocksString)
+				//fmt.Println("buyable stock string amount")
+				//fmt.Println(buyableStocksString)
 
 				//if the trigger doesnt exist exit
 				exists := checkTriggerExists(userId, stock, operation)

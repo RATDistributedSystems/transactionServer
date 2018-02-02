@@ -30,7 +30,7 @@ func cancelBuyTrigger(userId string, stock string,transactionNum int){
 		return
 	}
 
-	fmt.Println("cancelling buy trigger")
+	//fmt.Println("cancelling buy trigger")
 
 	//transactionNum_user += 1
 	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)

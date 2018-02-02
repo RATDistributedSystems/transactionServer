@@ -19,7 +19,7 @@ func addUser(userId string, usableCashString string,transactionNum int){
 
 	usableCash := stringToCents(usableCashString)
 
-	fmt.Println(usableCash)
+	//fmt.Println(usableCash)
 
 	var count int
 
@@ -35,13 +35,13 @@ func addUser(userId string, usableCashString string,transactionNum int){
 
 	//if the user already exists add money to the account
 	if count != 0{
-		fmt.Println("adding funds to user")
+		//fmt.Println("adding funds to user")
 		addFunds(userId, usableCash)
 
 
 	//if the user doesnt exist create a new user
 	}else{
-		fmt.Println("creating new user")
+		//fmt.Println("creating new user")
 		usableCashString = strconv.FormatInt(int64(usableCash), 10)
 		if err := sessionGlobal.Query("INSERT INTO users (userid, usableCash) VALUES ('" + userId + "', " + usableCashString + ")").Exec(); err != nil {
 			panic(fmt.Sprintf("problem creating session", err))

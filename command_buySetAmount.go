@@ -45,11 +45,13 @@ func setBuyAmount(userId string, stock string, pendingCashString string,transact
 	}
 
 	//Verify the pending cash vs the usable cash
+	/*
 	fmt.Println("\n" + userId)
 	fmt.Println("usableCash")
 	fmt.Println(usableCash)
 	fmt.Println("pendingCash")
 	fmt.Println(pendingCash)
+	*/
 
 	//if the user doesnt have enough funds cancel the allocation
 	if usableCash < pendingCash{
@@ -62,7 +64,7 @@ func setBuyAmount(userId string, stock string, pendingCashString string,transact
 	usableCash = usableCash - pendingCash;
 	usableCashString := strconv.FormatInt(int64(usableCash), 10)
 	pendingCashString = strconv.FormatInt(int64(pendingCash), 10)
-	fmt.Println("Available Cash is greater than buy amount")
+	//fmt.Println("Available Cash is greater than buy amount")
 	if err := sessionGlobal.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem getting allocating user funds", err))
 	}

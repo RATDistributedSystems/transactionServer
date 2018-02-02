@@ -28,7 +28,7 @@ func commitBuy(userId string,transactionNum int){
 
 	buyExists := checkDependency("COMMIT_BUY",userId,"none")
 	if(buyExists == false){
-		fmt.Println("cannot commit, no buys pending")
+		//fmt.Println("cannot commit, no buys pending")
 		return
 	}
 

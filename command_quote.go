@@ -21,12 +21,12 @@ func quoteRequest(userId string, stockSymbol string, transactionNum int) []strin
 	stockSymbol = strings.TrimSuffix(stockSymbol, "\n")
 	userId = strings.TrimSuffix(userId, "\n")
 	text := stockSymbol + "," + userId
-	fmt.Print(text)
+	//fmt.Print(text)
 	// send to socket
 	fmt.Fprintf(conn, text+"\n")
 	// listen for reply
 	message, _ := bufio.NewReader(conn).ReadString('\n')
-	fmt.Print("Message from server: " + message)
+	//fmt.Print("Message from server: " + message)
 
 	messageArray := strings.Split(message, ",")
 

@@ -38,7 +38,7 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	logUserEvent(timestamp_command, "TS1", transactionNum_string, "BUY", userId, stock, pendingCashString)
 	*/
 
-	fmt.Println(message[0])
+	//fmt.Println(message[0])
 	stockValueQuoteString := message[0]
 	stockValue = stringToCents(stockValueQuoteString)
 
@@ -46,11 +46,13 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	if err := sessionGlobal.Query("select userId, usableCash from users where userid='"+userId+"'").Scan(&userId, &usableCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
+	/*
 	fmt.Println("\n" + userId)
 	fmt.Println("usableCash")
 	fmt.Println(usableCash)
 	fmt.Println("pendingCash")
 	fmt.Println(pendingCash)
+	*/
 	//if not close the session
 	if usableCash < pendingCash {
 
@@ -61,15 +63,15 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	usableCash = usableCash - pendingCash
 	usableCashString := strconv.FormatInt(int64(usableCash), 10)
 	pendingCashString = strconv.FormatInt(int64(pendingCash), 10)
-	fmt.Println("Available Cash is greater than buy amount")
+	//fmt.Println("Available Cash is greater than buy amount")
 	if err := sessionGlobal.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	fmt.Println("Cash allocated")
+	//fmt.Println("Cash allocated")
 
 	u := uuid.NewV1()
 	f := uuid.Formatter(u, uuid.FormatCanonical)
-	fmt.Println(f)
+	//fmt.Println(f)
 
 	stockValueString := strconv.FormatInt(int64(stockValue), 10)
 	if err := sessionGlobal.Query("INSERT INTO buypendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
@@ -92,24 +94,24 @@ func updateStateBuy(operation int, uuid string, userId string) {
 	timer1 := time.NewTimer(time.Second * 62)
 
 	<-timer1.C
-	fmt.Println("Timer1 has expired")
-	fmt.Println("User Cash will be returned")
+	//fmt.Println("Timer1 has expired")
+	//fmt.Println("User Cash will be returned")
 
 	if operation == 1 {
-		fmt.Println("starting operation 1")
+		//fmt.Println("starting operation 1")
 		var pendingCash int
 		var usableCash int
 		var totalCash int
 		var count int
 
 		//check if remaining transaction still exists
-		fmt.Println("Checking if the the buy transaction still exists")
+		//fmt.Println("Checking if the the buy transaction still exists")
 		if err := sessionGlobal.Query("select count(*) from buypendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
 			panic(fmt.Sprintf("problem creating session", err))
 		}
 
-		fmt.Println("pending buy transactions:")
-		fmt.Println(count)
+		//fmt.Println("pending buy transactions:")
+		//fmt.Println(count)
 		if count == 0 {
 			fmt.Println("buy transaction doesnt exist")
 			return

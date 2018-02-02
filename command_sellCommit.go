@@ -59,7 +59,7 @@ func commitSell(userId string,transactionNum int){
 	//add available cash to leftover cash
 	usableCash = usableCash + pendingCash
 	usableCashString := strconv.FormatInt(int64(usableCash), 10)
-	fmt.Println(usableCashString)
+	//fmt.Println(usableCashString)
 
 	//re input the new cash value in to the user db
 	if err := sessionGlobal.Query("UPDATE users SET usableCash =" + usableCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {

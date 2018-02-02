@@ -26,11 +26,11 @@ func cancelSellTrigger(userId string, stock string,transactionNum int){
 
 	sellExists := checkDependency("CANCEL_SET_SELL",userId,stock)
 	if(sellExists == false){
-		fmt.Println("cannot CANCEL, no sells pending")
+		//fmt.Println("cannot CANCEL, no sells pending")
 		return
 	}
 
-	fmt.Println("cancelling sell trigger")
+	//fmt.Println("cancelling sell trigger")
 
 
 	//transactionNum_user += 1
