@@ -13,7 +13,7 @@ func dumpUser(userId string, filename string, transactionNum int) {
 	//transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
 	//logUserEvent(timestamp_command, "TS1", transactionNum_string, "DUMPLOG", "-1", "", "")
 	log.Printf("Dumping log data for %s\n", userId)
-	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG, %s, %s", userId, filename))
+	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG,%s,%s", userId, filename))
 }
 
 func dump(filename string, transactionNum int) {
@@ -22,5 +22,5 @@ func dump(filename string, transactionNum int) {
 	//transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
 	//logUserEvent(timestamp_command, "TS1", transactionNum_string, "DUMPLOG", "-1", "", "")
 	log.Println("Dumping all log data")
-	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG, %s", filename))
+	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG,%s", filename))
 }
