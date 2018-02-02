@@ -20,7 +20,9 @@ var logConnection net.Conn
 var transactionNumGlobal int
 var configurationServer = utilities.GetConfigurationFile("config.json")
 
+
 func main() {
+	initializePool(30, 100)
 	transactionNumGlobal = 0
 	initServer()
 	initAuditConnection()

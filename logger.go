@@ -3,19 +3,22 @@ package main
 //import "net"
 import (
 	"fmt"
-	"net"
+	//"net"
 	"time"
 	"strconv"
 )
 
 func sendMsgToAuditServer(msg string) {
-	addr, protocol := configurationServer.GetServerDetails("audit")
-	conn, err := net.Dial(protocol, addr)
-	if err != nil {
+	//addr, protocol := configurationServer.GetServerDetails("audit")
+	//conn, err := net.Dial(protocol, addr)
+	//if err != nil {
 		//log.Fatalf("Couldn't Connect to Audit server: " + err.Error())
-	}
-	defer conn.Close()
-	fmt.Fprintln(conn, msg)
+	//}
+	//defer conn.Close()
+	conn := globalPool.getConnection()
+	//fmt.Fprintf(conn, msg + "\n")
+	fmt.Println(conn, msg)
+	globalPool.returnConnection(conn)
 }
 
 func logUserEvent(server string, transactionNum int, command string, userid string, stockSymbol string, funds string) {
