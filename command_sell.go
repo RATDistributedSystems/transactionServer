@@ -77,6 +77,9 @@ func sell(userId string, stock string, sellStockDollarsString string,transaction
 		
 		return
 	}
+	if stockValue == 0{
+		return 
+	}
 	sellableStocks := sellStockDollars/stockValue
 	print("total sellable stocks ")
 	fmt.Println(sellableStocks)
