@@ -15,16 +15,13 @@ import (
 
 var sessionGlobal *gocql.Session
 var logConnection net.Conn
-var transactionNumGlobal int
-var configurationServer = utilities.GetConfigurationFile("config.json")
 
-var auditPool connectionPool
-var quotePool connectionPool
+var transactionNumGlobal = 0
+var configurationServer = utilities.GetConfigurationFile("config.json")
+var auditPool = initializePool(100, "audit")
+var quotePool = initializePool(100, "quote")
 
 func main() {
-	auditPool = initializePool(80, 100, "audit")
-	quotePool = initializePool(80, 100, "quote")
-	transactionNumGlobal = 0
 	initServer()
 	initAuditConnection()
 	uuid.Init()
@@ -77,18 +74,16 @@ func tcpListener() {
 }
 
 func handleRequest(conn net.Conn) {
+	defer conn.Close()
 	message, _ := bufio.NewReader(conn).ReadString('\n')
-	//remove new line character and any spaces received
 	message = strings.TrimSuffix(message, "\n")
 	message = strings.TrimSpace(message)
 	log.Printf("Recieved Request: %s", message)
 	commandExecuter(message)
-	conn.Close()
 }
 
 func commandExecuter(command string) {
 	result := strings.Split(command, ",")
-	//incrementing here since workload has no invalid entries
 	transactionNumGlobal++
 
 	switch result[0] {
