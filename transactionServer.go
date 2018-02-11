@@ -11,8 +11,6 @@ import (
 	"github.com/RATDistributedSystems/utilities"
 	"github.com/gocql/gocql"
 	"github.com/twinj/uuid"
-	//"time"
-	//"github.com/go-redis/redis"
 )
 
 var sessionGlobal *gocql.Session
@@ -22,7 +20,6 @@ var configurationServer = utilities.GetConfigurationFile("config.json")
 
 var auditPool connectionPool
 var quotePool connectionPool
-
 
 func main() {
 	auditPool = initializePool(80, 100, "audit")
@@ -114,7 +111,7 @@ func commandExecuter(command string) {
 		logUserEvent("TS1", transactionNumGlobal, "SELL", result[1], result[2], result[3])
 		sell(result[1], result[2], result[3], transactionNumGlobal)
 	case "COMMIT_SELL":
-		logUserEvent("TS1", transactionNumGlobal, "COMMIT_SELL", result[1],"", "")
+		logUserEvent("TS1", transactionNumGlobal, "COMMIT_SELL", result[1], "", "")
 		commitSell(result[1], transactionNumGlobal)
 	case "CANCEL_SELL":
 		logUserEvent("TS1", transactionNumGlobal, "CANCEL_SELL", result[1], "", "")

@@ -1,23 +1,13 @@
 package main
 
 import (
-	//"net"
 	"fmt"
-	//"bufio"
-	//"os"
-	//"github.com/gocql/gocql"
 	"strconv"
-	//"strings"
-	//"github.com/twinj/uuid"
 	"time"
-	//"github.com/go-redis/redis"
-	//"log"
 )
 
-
 //Set maxmimum price of a stock before the stock gets auto bought
-func setBuyTrigger(userId string, stock string, stockPriceTriggerString string,transactionNum int){
-
+func setBuyTrigger(userId string, stock string, stockPriceTriggerString string, transactionNum int) {
 
 	//convert trigger price from string to int cents
 	stockPriceTrigger := stringToCents(stockPriceTriggerString)
@@ -26,26 +16,15 @@ func setBuyTrigger(userId string, stock string, stockPriceTriggerString string,t
 	stockPriceTriggerString = strconv.FormatInt(int64(stockPriceTrigger), 10)
 
 	//set the triggerValue and create thread to check the quote server
-
-	/*
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
-	*/
-
 	if err := sessionGlobal.Query("UPDATE buyTriggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem setting trigger", err))
 	}
 
-
-	go checkBuyTrigger(userId, stock, stockPriceTrigger,transactionNum)
+	go checkBuyTrigger(userId, stock, stockPriceTrigger, transactionNum)
 
 }
 
-func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transactionNum int){
-
-
+func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transactionNum int) {
 
 	operation := true
 
@@ -57,24 +36,15 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 		//if the trigger doesnt exist exit
 
 		exists := checkTriggerExists(userId, stock, operation)
-		if exists == false{
+		if exists == false {
 			return
 		}
 
-
-
-		message := quoteRequest(userId, stock,transactionNum)
+		message := quoteRequest(userId, stock, transactionNum)
 		currentStockPrice := stringToCents(message[0])
 
-		/*
-		fmt.Println("Trigger value")
-		fmt.Println(stockPriceTrigger)
-		fmt.Println("quote price")
-		fmt.Println(currentStockPrice)
-		*/
-
 		//execute the buy instantly if trigger condition is true
-		if(currentStockPrice <= stockPriceTrigger){
+		if currentStockPrice <= stockPriceTrigger {
 
 			var usableCash int
 			var pendingCash int
@@ -86,20 +56,19 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 			var hasStock bool
 
 			//check if user currently owns any of this stock
-			iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
+			iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
 			for iter.Scan(&usid, &ownedstockname, &stockamount) {
-				if (ownedstockname == stock){
+				if ownedstockname == stock {
 					hasStock = true
-					break;
+					break
 				}
 			}
 			if err := iter.Close(); err != nil {
 				panic(fmt.Sprintf("problem creating session", err))
 			}
 
-
 			//If the user has some stock, add it to currently owned
-			if hasStock == true{
+			if hasStock == true {
 
 				//grab pendingCash for the buy trigger
 				if err := sessionGlobal.Query("SELECT pendingCash FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
@@ -114,13 +83,11 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 
 				buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
 
-
 				//if the trigger doesnt exist exit
 				exists := checkTriggerExists(userId, stock, operation)
-				if exists == false{
+				if exists == false {
 					return
 				}
-
 
 				//insert new stock record
 				if err := sessionGlobal.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE usid=" + usid + "").Exec(); err != nil {
@@ -161,22 +128,12 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int,transact
 				}
 
 				buyableStocks := pendingCash / stockValue
-				//fmt.Println("buyable stock amount")
-				//fmt.Println(buyableStocks)
-				//remaining money
 				remainingCash = pendingCash - (buyableStocks * stockValue)
-
 				buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
-
-				//fmt.Println("buyable stock string amount")
-				//fmt.Println(buyableStocksString)
-
-				//if the trigger doesnt exist exit
 				exists := checkTriggerExists(userId, stock, operation)
-				if exists == false{
+				if exists == false {
 					return
 				}
-
 
 				//insert new stock record
 				if err := sessionGlobal.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", '" + stock + "')").Exec(); err != nil {

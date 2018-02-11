@@ -1,11 +1,9 @@
 package main
 
-//import "net"
 import (
 	"fmt"
-	//"net"
-	"time"
 	"strconv"
+	"time"
 )
 
 func sendMsgToAuditServer(msg string) {

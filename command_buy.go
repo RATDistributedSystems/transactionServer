@@ -1,28 +1,16 @@
 package main
 
 import (
-	//"net"
 	"fmt"
-	//"bufio"
-	//"os"
-	//"github.com/gocql/gocql"
 	"strconv"
-	//"strings"
 	"time"
 
 	"github.com/twinj/uuid"
-	//"github.com/go-redis/redis"
-	//"log"
 )
 
 func buy(userId string, stock string, pendingCashString string, transactionNum int) {
-	//userid,stocksymbol,amount
 
 	pendingCash := stringToCents(pendingCashString)
-	//var userId string = "Jones"
-	//cash to spend in total for a stock
-	//var pendingCash int = 200
-	//var stock string = "abs"
 	var stockValue int
 	var usableCash int
 
@@ -32,13 +20,7 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	timestamp_quote := strconv.FormatInt(timestamp_q, 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
 	logQuoteEvent(timestamp_quote, "TS1", transactionNum_string, message[0], message[1], userId, message[3], message[4])
-	/*
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "BUY", userId, stock, pendingCashString)
-	*/
 
-	//fmt.Println(message[0])
 	stockValueQuoteString := message[0]
 	stockValue = stringToCents(stockValueQuoteString)
 
@@ -46,14 +28,7 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	if err := sessionGlobal.Query("select userId, usableCash from users where userid='"+userId+"'").Scan(&userId, &usableCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	/*
-	fmt.Println("\n" + userId)
-	fmt.Println("usableCash")
-	fmt.Println(usableCash)
-	fmt.Println("pendingCash")
-	fmt.Println(pendingCash)
-	*/
-	//if not close the session
+
 	if usableCash < pendingCash {
 
 		return
@@ -94,8 +69,6 @@ func updateStateBuy(operation int, uuid string, userId string) {
 	timer1 := time.NewTimer(time.Second * 62)
 
 	<-timer1.C
-	//fmt.Println("Timer1 has expired")
-	//fmt.Println("User Cash will be returned")
 
 	if operation == 1 {
 		//fmt.Println("starting operation 1")

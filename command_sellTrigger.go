@@ -1,37 +1,19 @@
 package main
 
 import (
-	//"net"
 	"fmt"
-	//"bufio"
-	//"os"
-	//"github.com/gocql/gocql"
 	"strconv"
-	//"strings"
-	//"github.com/twinj/uuid"
 	"time"
-	//"github.com/go-redis/redis"
-	//"log"
 )
 
-
-func setSellTrigger(userId string, stock string, stockSellPrice string,transactionNum int){
-
-
+func setSellTrigger(userId string, stock string, stockSellPrice string, transactionNum int) {
 
 	stockSellPriceCents := stringToCents(stockSellPrice)
 	stockSellPriceCentsString := strconv.FormatInt(int64(stockSellPriceCents), 10)
-	/*
-
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
-	*/
 
 	//check if set sell amount is set for this particular stock
 	var count int
-	if err := sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId +"' AND stock='" + stock + "' ").Scan(&count); err != nil{
+	if err := sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "' ").Scan(&count); err != nil {
 		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 	}
 
@@ -42,22 +24,16 @@ func setSellTrigger(userId string, stock string, stockSellPrice string,transacti
 	}
 
 	//update database entry with trigger value
-	if err := sessionGlobal.Query("UPDATE sellTriggers SET triggerValue=" + stockSellPriceCentsString + " WHERE userid='" + userId +"' AND stock='" + stock + "' ").Exec(); err != nil{
+	if err := sessionGlobal.Query("UPDATE sellTriggers SET triggerValue=" + stockSellPriceCentsString + " WHERE userid='" + userId + "' AND stock='" + stock + "' ").Exec(); err != nil {
 		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 	}
 
-
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-
-	go checkSellTrigger(userId, stock, stockSellPriceCents,transactionNum)
+	go checkSellTrigger(userId, stock, stockSellPriceCents, transactionNum)
 }
 
-
-func checkSellTrigger(userId string, stock string, stockSellPriceCents int,transactionNum int){
+func checkSellTrigger(userId string, stock string, stockSellPriceCents int, transactionNum int) {
 
 	operation := false
-
 
 	for {
 		//check the quote server every 5 seconds
@@ -67,21 +43,21 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int,trans
 		//if the trigger doesnt exist exit
 
 		exists := checkTriggerExists(userId, stock, operation)
-		if exists == false{
+		if exists == false {
 			return
 		}
 
 		//retrieve current stock price
-		message := quoteRequest(userId, stock,transactionNum)
+		message := quoteRequest(userId, stock, transactionNum)
 		currentStockPrice := stringToCents(message[0])
 
-		if currentStockPrice > stockSellPriceCents{
+		if currentStockPrice > stockSellPriceCents {
 
 			//Check how many stocks the user can sell
 
 			var pendingCash int
 
-			if err := sessionGlobal.Query("SELECT pendingCash FROM sellTriggers WHERE userid='" + userId +"' AND stock='" + stock + "' ").Scan(&pendingCash); err != nil{
+			if err := sessionGlobal.Query("SELECT pendingCash FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "' ").Scan(&pendingCash); err != nil {
 				panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 			}
 
@@ -96,17 +72,17 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int,trans
 			var remainingStocks int
 
 			//check if user has more owned stocks than able to sell
-			if sellAbleStocksMax < ownedStocks{
+			if sellAbleStocksMax < ownedStocks {
 				sellAbleStocks = sellAbleStocksMax
 				remainingStocks = ownedStocks - sellAbleStocks
 
 				//calculate money gained from stocks selling
 				sellAbleStockPrice := pendingCash - (sellAbleStocksMax * currentStockPrice)
 
-				remainingStocksString := strconv.FormatInt(int64(remainingStocks),10)
+				remainingStocksString := strconv.FormatInt(int64(remainingStocks), 10)
 
 				//update userStock database with new about of stock
-				if err := sessionGlobal.Query("UPDATE userstocks SET stockamount =" + remainingStocksString + " WHERE usid=" + usid ).Exec(); err != nil {
+				if err := sessionGlobal.Query("UPDATE userstocks SET stockamount =" + remainingStocksString + " WHERE usid=" + usid).Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 
@@ -115,12 +91,10 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int,trans
 
 				//delete trigger
 
-				 
-
 				if err := sessionGlobal.Query("DELETE FROM sellTriggers WHERE userId='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
-			}else{
+			} else {
 				//Case where user does not own enough stocks to sell the maximum amount
 				//user must sell the most it can
 				sellAbleStocks = ownedStocks
@@ -133,7 +107,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int,trans
 
 				addFunds(userId, sellAbleStockPrice)
 
-				if err := sessionGlobal.Query("DELETE FROM userstocks WHERE usid=" + usid ).Exec(); err != nil {
+				if err := sessionGlobal.Query("DELETE FROM userstocks WHERE usid=" + usid).Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 

@@ -1,17 +1,10 @@
 package main
 
 import (
-	//"net"
 	"fmt"
-	//"bufio"
-	//"os"
-	//"github.com/gocql/gocql"
+	"log"
 	"strconv"
 	"strings"
-	//"github.com/twinj/uuid"
-	//"time"
-	//"github.com/go-redis/redis"
-	"log"
 )
 
 func getUsableCash(userId string) int {
@@ -97,7 +90,6 @@ func checkTriggerExists(userId string, stock string, isBuyOperation bool) bool {
 }
 
 func checkStockOwnership(userId string, stock string) (int, string) {
-
 	var ownedstockname string
 	var ownedstockamount int
 	var usid string

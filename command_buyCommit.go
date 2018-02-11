@@ -1,33 +1,15 @@
 package main
 
 import (
-	//"net"
 	"fmt"
-	//"bufio"
-	//"os"
-	//"github.com/gocql/gocql"
 	"strconv"
 	"strings"
-	//"github.com/twinj/uuid"
-	//"time"
-	//"github.com/go-redis/redis"
-	//"log"
 )
 
-func commitBuy(userId string,transactionNum int){
+func commitBuy(userId string, transactionNum int) {
 
-
-	/*
-	timestamp_time := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_command := strconv.FormatInt(timestamp_time, 10)
-	//transactionNum_user += 1
-	//transactionNum_user_string := strconv.FormatInt(int64(transactionNum_user), 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum),10)
-	logUserEvent(timestamp_command, "TS1", transactionNum_string, "COMMIT_BUY", userId, "", "")
-	*/
-
-	buyExists := checkDependency("COMMIT_BUY",userId,"none")
-	if(buyExists == false){
+	buyExists := checkDependency("COMMIT_BUY", userId, "none")
+	if buyExists == false {
 		//fmt.Println("cannot commit, no buys pending")
 		return
 	}
@@ -41,10 +23,7 @@ func commitBuy(userId string,transactionNum int){
 	var uuid string
 	userId = strings.TrimSuffix(userId, "\n")
 
-
-
-
-	if err := sessionGlobal.Query("select pid, stock, stockValue, pendingCash from buypendingtransactions where userId='" + userId + "'").Scan(&uuid,&buyingstockName, &stockValue, &pendingCash); err != nil {
+	if err := sessionGlobal.Query("select pid, stock, stockValue, pendingCash from buypendingtransactions where userId='"+userId+"'").Scan(&uuid, &buyingstockName, &stockValue, &pendingCash); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
@@ -54,11 +33,11 @@ func commitBuy(userId string,transactionNum int){
 	var hasStock bool
 
 	//check if user currently owns any of this stock
-	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='"+ userId + "'").Iter()
+	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
 	for iter.Scan(&usid, &ownedstockname, &stockamount) {
-		if (ownedstockname == buyingstockName){
+		if ownedstockname == buyingstockName {
 			hasStock = true
-			break;
+			break
 		}
 		//fmt.Println("STOCKS: ", stockname, stockamount)
 	}
@@ -66,7 +45,7 @@ func commitBuy(userId string,transactionNum int){
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-	if hasStock == true{
+	if hasStock == true {
 
 		//calculate amount of stocks can be bought
 		buyableStocks = pendingCash / stockValue
@@ -126,12 +105,9 @@ func commitBuy(userId string,transactionNum int){
 
 	}
 
-	
-
 	//delete the pending transcation
 	if err := sessionGlobal.Query("delete from buypendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-
 
 }
