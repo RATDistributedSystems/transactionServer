@@ -25,7 +25,7 @@ func initializePool(poolSize int, serverName string) *connectionPool {
 func (c *connectionPool) getConnection() net.Conn {
 	c.mux.Lock()
 
-	// make new connections if none are free
+	// if none are free add more
 	if len(c.freeConnections) < 1 {
 		c.addConnections()
 	}
@@ -47,7 +47,7 @@ func (c *connectionPool) addConnections() {
 		addr, protocol := configurationServer.GetServerDetails(c.serverName)
 		conn, err := net.Dial(protocol, addr)
 		if err != nil {
-			log.Fatalf("Could not make another connection" + err.Error())
+			log.Fatalf("Could not make another connection for %s server\n%s", c.serverName, err.Error())
 		}
 		c.freeConnections = append(c.freeConnections, conn)
 	}

@@ -8,7 +8,7 @@ import (
 
 func sendMsgToAuditServer(msg string) {
 	conn := auditPool.getConnection()
-	fmt.Println(conn, msg)
+	fmt.Fprintln(conn, msg)
 	auditPool.returnConnection(conn)
 }
 
