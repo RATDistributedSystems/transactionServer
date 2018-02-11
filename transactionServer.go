@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 	"net/textproto"
@@ -51,7 +50,7 @@ func initCassandra() {
 		panic(err)
 	}
 	sessionGlobal = session
-	fmt.Println("Database Connection Created")
+	log.Println("Database Connection Created")
 }
 
 func initTCPListener() {
@@ -85,65 +84,48 @@ func handleRequest(conn net.Conn) {
 	}
 	message := strings.TrimSpace(untrimmedMsg)
 	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, message)
-	commandExecuter(message)
+	executeCommand(message)
 }
 
-func commandExecuter(command string) {
+func executeCommand(command string) {
 	result := strings.Split(command, ",")
 	transactionNumGlobal++
 
 	switch result[0] {
 	case "ADD":
-		logUserEvent("TS1", transactionNumGlobal, "ADD", result[1], "", result[2])
 		addUser(result[1], result[2], transactionNumGlobal)
 	case "QUOTE":
-		logUserEvent("TS1", transactionNumGlobal, "QUOTE", result[1], result[2], "")
 		quoteRequest(result[1], result[2], transactionNumGlobal)
 	case "BUY":
-		logUserEvent("TS1", transactionNumGlobal, "BUY", result[1], result[2], result[3])
 		buy(result[1], result[2], result[3], transactionNumGlobal)
 	case "COMMIT_BUY":
-		logUserEvent("TS1", transactionNumGlobal, "COMMIT_BUY", result[1], "", "")
 		commitBuy(result[1], transactionNumGlobal)
 	case "CANCEL_BUY":
-		logUserEvent("TS1", transactionNumGlobal, "CANCEL_BUY", result[1], "", "")
 		cancelBuy(result[1], transactionNumGlobal)
 	case "SELL":
-		logUserEvent("TS1", transactionNumGlobal, "SELL", result[1], result[2], result[3])
 		sell(result[1], result[2], result[3], transactionNumGlobal)
 	case "COMMIT_SELL":
-		logUserEvent("TS1", transactionNumGlobal, "COMMIT_SELL", result[1], "", "")
 		commitSell(result[1], transactionNumGlobal)
 	case "CANCEL_SELL":
-		logUserEvent("TS1", transactionNumGlobal, "CANCEL_SELL", result[1], "", "")
 		cancelSell(result[1], transactionNumGlobal)
 	case "SET_BUY_AMOUNT":
-		logUserEvent("TS1", transactionNumGlobal, "SET_BUY_AMOUNT", result[1], result[2], result[3])
 		setBuyAmount(result[1], result[2], result[3], transactionNumGlobal)
 	case "SET_BUY_TRIGGER":
-		logUserEvent("TS1", transactionNumGlobal, "SET_BUY_TRIGGER", result[1], result[2], result[3])
 		setBuyTrigger(result[1], result[2], result[3], transactionNumGlobal)
 	case "CANCEL_SET_BUY":
-		logUserEvent("TS1", transactionNumGlobal, "CANCEL_SET_BUY", result[1], result[2], "")
 		cancelBuyTrigger(result[1], result[2], transactionNumGlobal)
 	case "SET_SELL_AMOUNT":
-		logUserEvent("TS1", transactionNumGlobal, "SET_SELL_AMOUNT", result[1], result[2], result[3])
 		setSellAmount(result[1], result[2], result[3], transactionNumGlobal)
 	case "SET_SELL_TRIGGER":
-		logUserEvent("TS1", transactionNumGlobal, "SET_SELL_TRIGGER", result[1], result[2], result[3])
 		setSellTrigger(result[1], result[2], result[3], transactionNumGlobal)
 	case "CANCEL_SET_SELL":
-		logUserEvent("TS1", transactionNumGlobal, "CANCEL_SET_SELL", result[1], result[2], "")
 		cancelSellTrigger(result[1], result[2], transactionNumGlobal)
 	case "DISPLAY_SUMMARY":
-		logUserEvent("TS1", transactionNumGlobal, "DISPLAY_SUMMARY", result[1], "", "")
 		displaySummary(result[1], transactionNumGlobal)
 	case "DUMPLOG":
 		if len(result) == 3 {
-			logUserEvent("TS1", transactionNumGlobal, "DUMPLOG", result[1], "", "")
 			dumpUser(result[1], result[2], transactionNumGlobal)
 		} else if len(result) == 2 {
-			logUserEvent("TS1", transactionNumGlobal, "DUMPLOG", "-1", "", "")
 			dump(result[1], transactionNumGlobal)
 		}
 	}

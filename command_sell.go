@@ -9,11 +9,9 @@ import (
 )
 
 func sell(userId string, stock string, sellStockDollarsString string, transactionNum int) {
-	//userid,stocksymbol,amount
+	logUserEvent("TS1", transactionNum, "SELL", userId, stock, sellStockDollarsString)
 
-	//var userId string = "Jones"
 	sellStockDollars := stringToCents(sellStockDollarsString)
-	//var stock string = "abc"
 	var stockValue int
 	var usableStocks int
 	var stockname string
@@ -30,16 +28,14 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 		if stockname == stock {
 			hasStock = true
 			break
-
 		}
 
 	}
 	if err := iter.Close(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 	if !hasStock {
-
 		return
 	}
 
@@ -71,7 +67,8 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 	if err := sessionGlobal.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))
 	}
-	go updateStateSell(userId, f, usid)
+
+	updateStateSell(userId, f, usid)
 }
 
 func updateStateSell(userId string, uuid string, usid string) {
@@ -88,7 +85,7 @@ func updateStateSell(userId string, uuid string, usid string) {
 
 	//check if remaining transaction still exists
 	if err := sessionGlobal.Query("select count(*) from sellpendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 	if count == 0 {
@@ -116,7 +113,7 @@ func updateStateSell(userId string, uuid string, usid string) {
 
 	//return total stocks to the userstocks
 	if err := sessionGlobal.Query("UPDATE userstocks SET stockamount =" + totalStocksString + " WHERE usid=" + usid).Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 }
