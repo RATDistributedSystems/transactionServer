@@ -14,27 +14,29 @@ import (
 )
 
 var sessionGlobal *gocql.Session
-var logConnection net.Conn
 
 var transactionNumGlobal = 0
 var configurationServer = utilities.GetConfigurationFile("config.json")
 var auditPool = initializePool(100, "audit")
-var quotePool = initializePool(100, "quote")
+
+//var quotePool = initializePool(100, "quote")
 
 func main() {
-	initServer()
-	initAuditConnection()
 	uuid.Init()
-	tcpListener()
+	initCassandra()
+	initTCPListener()
 }
 
-func initAuditConnection() {
-	addr, protocol := configurationServer.GetServerDetails("audit")
-	conn, _ := net.Dial(protocol, addr)
-	logConnection = conn
+func GetQuoteServerConnection() net.Conn {
+	addr, protocol := configurationServer.GetServerDetails("quote")
+	conn, err := net.Dial(protocol, addr)
+	if err != nil {
+		log.Printf("Encountered error when trying to connect to quote server\n%s", err.Error())
+	}
+	return conn
 }
 
-func initServer() {
+func initCassandra() {
 	//connect to database
 	cluster := gocql.NewCluster(configurationServer.GetValue("cassandra_ip"))
 	cluster.Keyspace = configurationServer.GetValue("cassandra_keyspace")
@@ -51,7 +53,7 @@ func initServer() {
 	fmt.Println("Database Connection Created")
 }
 
-func tcpListener() {
+func initTCPListener() {
 	// Listen for incoming connections.
 	addr, protocol := configurationServer.GetServerDetails("transaction")
 	l, err := net.Listen(protocol, addr)
@@ -78,7 +80,7 @@ func handleRequest(conn net.Conn) {
 	message, _ := bufio.NewReader(conn).ReadString('\n')
 	message = strings.TrimSuffix(message, "\n")
 	message = strings.TrimSpace(message)
-	log.Printf("Recieved Request: %s", message)
+	log.Printf("Recieved Request: [%s]  %s", transactionNumGlobal, message)
 	commandExecuter(message)
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -10,7 +11,7 @@ func commitBuy(userId string, transactionNum int) {
 
 	buyExists := checkDependency("COMMIT_BUY", userId, "none")
 	if buyExists == false {
-		//fmt.Println("cannot commit, no buys pending")
+		log.Printf("Cannot commit buy for %s #%d. No buy pending", userId, transactionNum)
 		return
 	}
 

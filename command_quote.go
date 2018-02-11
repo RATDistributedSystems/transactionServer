@@ -9,7 +9,8 @@ import (
 )
 
 func quoteRequest(userId string, stockSymbol string, transactionNum int) []string {
-	conn := quotePool.getConnection()
+	//conn := quotePool.getConnection()
+	conn := GetQuoteServerConnection()
 	stockSymbol = strings.TrimSuffix(stockSymbol, "\n")
 	userId = strings.TrimSuffix(userId, "\n")
 	text := stockSymbol + "," + userId
@@ -17,10 +18,9 @@ func quoteRequest(userId string, stockSymbol string, transactionNum int) []strin
 	fmt.Fprintf(conn, text+"\n")
 	// listen for reply
 	message, _ := bufio.NewReader(conn).ReadString('\n')
-	//fmt.Print("Message from server: " + message)
-	quotePool.returnConnection(conn)
+	//quotePool.returnConnection(conn)
+	conn.Close()
 	messageArray := strings.Split(message, ",")
-
 	timestamp_q := (time.Now().UTC().UnixNano()) / 1000000
 	timestamp_quote := strconv.FormatInt(timestamp_q, 10)
 	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
