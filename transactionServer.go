@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/textproto"
 	"strconv"
 	"strings"
 
@@ -77,10 +78,13 @@ func initTCPListener() {
 
 func handleRequest(conn net.Conn) {
 	defer conn.Close()
-	message, _ := bufio.NewReader(conn).ReadString('\n')
-	message = strings.TrimSuffix(message, "\n")
-	message = strings.TrimSpace(message)
-	log.Printf("Recieved Request: [%s]  %s", transactionNumGlobal, message)
+	tp := textproto.NewReader(bufio.NewReader(conn))
+	untrimmedMsg, err := tp.ReadLine()
+	if err != nil {
+		log.Println(err)
+	}
+	message := strings.TrimSpace(untrimmedMsg)
+	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, message)
 	commandExecuter(message)
 }
 
