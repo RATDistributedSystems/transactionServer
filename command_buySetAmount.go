@@ -10,7 +10,7 @@ import (
 //sets aside the amount of money user wants to spend on a given stock
 //executes prior to setTriggerValue
 func setBuyAmount(userId string, stock string, pendingCashString string, transactionNum int) {
-
+	logUserEvent("TS1", transactionNum, "SET_BUY_AMOUNT", userId, stock, pendingCashString)
 	var usableCash int
 	pendingCash := stringToCents(pendingCashString)
 

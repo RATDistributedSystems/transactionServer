@@ -7,6 +7,7 @@ import (
 )
 
 func cancelSell(userId string, transactionNum int) {
+	logUserEvent("TS1", transactionNum, "CANCEL_SELL", userId, "", "")
 
 	var uuid string
 	var pendingCash int

@@ -3,28 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"strconv"
 	"strings"
-	"time"
 )
 
 func quoteRequest(userId string, stockSymbol string, transactionNum int) []string {
-	//conn := quotePool.getConnection()
-	conn := GetQuoteServerConnection()
-	stockSymbol = strings.TrimSuffix(stockSymbol, "\n")
-	userId = strings.TrimSuffix(userId, "\n")
-	text := stockSymbol + "," + userId
-
-	fmt.Fprintf(conn, text+"\n")
-	// listen for reply
+	//log events
+	logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
+	conn := GetQuoteServerConnection() //conn := quotePool.getConnection()
+	fmt.Fprintf(conn, "%s,%s", stockSymbol, userId)
 	message, _ := bufio.NewReader(conn).ReadString('\n')
-	//quotePool.returnConnection(conn)
-	conn.Close()
+	conn.Close() //quotePool.returnConnection(conn)
 	messageArray := strings.Split(message, ",")
-	timestamp_q := (time.Now().UTC().UnixNano()) / 1000000
-	timestamp_quote := strconv.FormatInt(timestamp_q, 10)
-	transactionNum_string := strconv.FormatInt(int64(transactionNum), 10)
-	logQuoteEvent(timestamp_quote, "TS1", transactionNum_string, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
-
+	logQuoteEvent("TS1", transactionNum, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
 	return messageArray
 }

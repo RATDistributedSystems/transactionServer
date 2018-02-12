@@ -8,7 +8,7 @@ import (
 )
 
 func commitBuy(userId string, transactionNum int) {
-
+	logUserEvent("TS1", transactionNum, "COMMIT_BUY", userId, "", "")
 	buyExists := checkDependency("COMMIT_BUY", userId, "none")
 	if buyExists == false {
 		log.Printf("Cannot commit buy for %s #%d. No buy pending", userId, transactionNum)
@@ -22,10 +22,10 @@ func commitBuy(userId string, transactionNum int) {
 	var remainingCash int
 	var usableCash int
 	var uuid string
-	userId = strings.TrimSuffix(userId, "\n")
+	//userId = strings.TrimSuffix(userId, "\n")
 
 	if err := sessionGlobal.Query("select pid, stock, stockValue, pendingCash from buypendingtransactions where userId='"+userId+"'").Scan(&uuid, &buyingstockName, &stockValue, &pendingCash); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
+		panic(err)
 	}
 
 	var usid string

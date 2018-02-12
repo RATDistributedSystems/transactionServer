@@ -8,7 +8,7 @@ import (
 
 //Set maxmimum price of a stock before the stock gets auto bought
 func setBuyTrigger(userId string, stock string, stockPriceTriggerString string, transactionNum int) {
-
+	logUserEvent("TS1", transactionNum, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
 	//convert trigger price from string to int cents
 	stockPriceTrigger := stringToCents(stockPriceTriggerString)
 	//fmt.Println(stockPriceTrigger);
