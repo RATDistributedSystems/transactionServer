@@ -38,6 +38,7 @@ func cancelSellTrigger(userId string, stock string, transactionNum int) {
 		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 	}
 
+	//re add allocated trigger stocks and stocks the user has
 	stockTotal := stockamount + pendingStocks
 	stockTotalString := strconv.FormatInt(int64(stockTotal), 10)
 	if err := sessionGlobal.Query("UPDATE userstocks SET stockamount=" + stockTotalString + " WHERE usid=" + usid).Exec(); err != nil {
