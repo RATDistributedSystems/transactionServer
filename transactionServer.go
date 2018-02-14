@@ -17,7 +17,7 @@ var sessionGlobal *gocql.Session
 
 var transactionNumGlobal = 0
 var configurationServer = utilities.GetConfigurationFile("config.json")
-var auditPool = initializePool(100, "audit")
+var auditPool = initializePool(100, 120, "audit")
 
 //var quotePool = initializePool(100, "quote")
 
@@ -60,7 +60,7 @@ func initTCPListener() {
 	if err != nil {
 		panic(err)
 	}
-	defer l.Close()
+	//defer l.Close()
 	log.Printf("Transaction server listening on %s", addr)
 
 	for {
@@ -76,12 +76,12 @@ func initTCPListener() {
 }
 
 func handleRequest(conn net.Conn) {
-	defer conn.Close()
 	tp := textproto.NewReader(bufio.NewReader(conn))
 	untrimmedMsg, err := tp.ReadLine()
 	if err != nil {
 		log.Println(err)
 	}
+	conn.Close()
 	message := strings.TrimSpace(untrimmedMsg)
 	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, message)
 	executeCommand(message)

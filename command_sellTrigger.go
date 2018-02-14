@@ -37,7 +37,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int, tran
 
 	for {
 		//check the quote server every 5 seconds
-		timer1 := time.NewTimer(time.Second * 5)
+		timer1 := time.NewTimer(time.Second * 1)
 		<-timer1.C
 
 		//if the trigger doesnt exist exit

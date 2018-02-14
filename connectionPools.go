@@ -9,12 +9,14 @@ import (
 type connectionPool struct {
 	serverName      string
 	poolSize        int
+	maxPoolSize		int
 	freeConnections []net.Conn
 	mux             sync.Mutex
 }
 
-func initializePool(poolSize int, serverName string) *connectionPool {
+func initializePool(poolSize int, maxPoolSize int, serverName string) *connectionPool {
 	var connPool connectionPool
+	connPool.maxPoolSize = maxPoolSize
 	connPool.freeConnections = make([]net.Conn, 0)
 	connPool.serverName = serverName
 	connPool.poolSize = poolSize
@@ -43,7 +45,10 @@ func (c *connectionPool) returnConnection(conn net.Conn) {
 }
 
 func (c *connectionPool) addConnections() {
-	for i := 0; i < c.poolSize; i++ {
+	if(len(c.freeConnections) > c.maxPoolSize){
+		return
+	}
+	for i := 0; i < 10; i++ {
 		addr, protocol := configurationServer.GetServerDetails(c.serverName)
 		conn, err := net.Dial(protocol, addr)
 		if err != nil {
