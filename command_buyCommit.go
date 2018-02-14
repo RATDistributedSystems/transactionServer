@@ -56,7 +56,7 @@ func commitBuy(userId string, transactionNum int) {
 
 		buyableStocksString := strconv.FormatInt(int64(buyableStocks), 10)
 
-		//insert new stock record
+		//update new stock record
 		if err := sessionGlobal.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE usid=" + usid).Exec(); err != nil {
 			panic(fmt.Sprintf("problem creating session", err))
 		}
