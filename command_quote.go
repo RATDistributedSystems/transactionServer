@@ -10,7 +10,7 @@ func quoteRequest(userId string, stockSymbol string, transactionNum int) []strin
 	//log events
 	logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
 	conn := GetQuoteServerConnection() //conn := quotePool.getConnection()
-	fmt.Fprintf(conn, "%s,%s", stockSymbol, userId)
+	fmt.Fprintf(conn, "%s,%s\n", stockSymbol, userId)
 	message, _ := bufio.NewReader(conn).ReadString('\n')
 	conn.Close() //quotePool.returnConnection(conn)
 	messageArray := strings.Split(message, ",")

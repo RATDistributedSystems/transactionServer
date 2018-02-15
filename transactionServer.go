@@ -5,16 +5,15 @@ import (
 	"log"
 	"net"
 	"net/textproto"
-	"strconv"
 	"strings"
 
 	"github.com/RATDistributedSystems/utilities"
+	"github.com/RATDistributedSystems/utilities/ratdatabase"
 	"github.com/gocql/gocql"
 	"github.com/twinj/uuid"
 )
 
 var sessionGlobal *gocql.Session
-
 var transactionNumGlobal = 0
 var configurationServer = utilities.GetConfigurationFile("config.json")
 var auditPool = initializePool(100, 120, "audit")
@@ -38,18 +37,11 @@ func GetQuoteServerConnection() net.Conn {
 
 func initCassandra() {
 	//connect to database
-	cluster := gocql.NewCluster(configurationServer.GetValue("cassandra_ip"))
-	cluster.Keyspace = configurationServer.GetValue("cassandra_keyspace")
-	proto, err := strconv.Atoi(configurationServer.GetValue("cassandra_proto"))
-	if err != nil {
-		panic("Cassandra protocol version not int")
-	}
-	cluster.ProtoVersion = proto
-	session, err := cluster.CreateSession()
-	if err != nil {
-		panic(err)
-	}
-	sessionGlobal = session
+	hostname := configurationServer.GetValue("cassandra_ip")
+	keyspace := configurationServer.GetValue("cassandra_keyspace")
+	protocol := configurationServer.GetValue("cassandra_proto")
+	ratdatabase.InitCassandraConnection(hostname, keyspace, protocol)
+	sessionGlobal = ratdatabase.CassandraConnection
 	log.Println("Database Connection Created")
 }
 
