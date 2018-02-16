@@ -42,7 +42,6 @@ func initCassandra() {
 	protocol := configurationServer.GetValue("cassandra_proto")
 	ratdatabase.InitCassandraConnection(hostname, keyspace, protocol)
 	sessionGlobal = ratdatabase.CassandraConnection
-	log.Println("Database Connection Created")
 }
 
 func initTCPListener() {
