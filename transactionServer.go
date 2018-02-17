@@ -74,13 +74,13 @@ func handleRequest(conn net.Conn) {
 	}
 	conn.Close()
 	message := strings.TrimSpace(untrimmedMsg)
-	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, message)
 	executeCommand(message)
 }
 
 func executeCommand(command string) {
 	result := strings.Split(command, ",")
 	transactionNumGlobal++
+	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, command)
 
 	switch result[0] {
 	case "ADD":

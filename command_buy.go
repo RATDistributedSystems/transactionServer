@@ -12,13 +12,17 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	logUserEvent("TS1", transactionNum, "BUY", userId, stock, pendingCashString)
 
 	pendingTransactionCash := stringToCents(pendingCashString)
-	message := quoteRequest(userId, stock, transactionNum)
-	stockValue := stringToCents(message[0])
+	stockValue := quoteRequest(userId, stock, transactionNum)
 	stockAmount := pendingTransactionCash / stockValue
 	currentBalance := ratdatabase.GetUserBalance(userId)
 
-	if currentBalance < pendingTransactionCash || stockAmount == 0 {
+	if currentBalance < pendingTransactionCash {
 		log.Printf("[%d] Not enough money for %s to perform buy", transactionNum, userId)
+		return
+	}
+
+	if stockAmount == 0 {
+		log.Printf("[%d] %s stock price(%d) higher than amount to purchase(%d)", transactionNum, stock, stockValue, pendingTransactionCash)
 		return
 	}
 
@@ -26,6 +30,7 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	newBalance := currentBalance - pendingTransactionCash
 	ratdatabase.UpdateUserBalance(userId, newBalance)
 	uuid := ratdatabase.InsertPendingBuyTransaction(userId, pendingTransactionCash, stock, stockValue)
+	log.Printf("[%d] User %s buy transaction for %d %s@%d pending", transactionNum, userId, stockAmount, stock, stockValue)
 
 	//waits for 62 seconds and checks if the transaction is still there. Remove if it is
 	time.Sleep(time.Second * 62)
@@ -82,8 +87,9 @@ func commitBuy(userID string, transactionNum int) {
 		newStockAmount := stockAmount + stockBought
 		ratdatabase.UpdateUserStockByUUID(stockUUID, stockName, newStockAmount)
 	} else {
-		ratdatabase.AddStockToPortfolio(userID, stockName, stockAmount)
+		ratdatabase.AddStockToPortfolio(userID, stockName, stockBought)
 	}
+	log.Printf("[%d] User %s now has %d more of stock %s", transactionNum, userID, stockBought, stockName)
 
 	if surplusCash != 0 {
 		currentBalance := ratdatabase.GetUserBalance(userID)

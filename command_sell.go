@@ -1,119 +1,53 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
+	"log"
 	"time"
 
-	"github.com/twinj/uuid"
+	"github.com/RATDistributedSystems/utilities/ratdatabase"
 )
 
 func sell(userId string, stock string, sellStockDollarsString string, transactionNum int) {
 	logUserEvent("TS1", transactionNum, "SELL", userId, stock, sellStockDollarsString)
 
-	sellStockDollars := stringToCents(sellStockDollarsString)
-	var stockValue int
-	var usableStocks int
-	var stockname string
-	var stockamount int
-	var usid string
-	var hasStock bool
+	sellStockValue := stringToCents(sellStockDollarsString)
+	stockValue := quoteRequest(userId, stock, transactionNum)
 
-	message := quoteRequest(userId, stock, transactionNum)
-	stockValue = stringToCents(message[0])
-
-	//check if user has enough stocks for a SELL
-	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
-	for iter.Scan(&usid, &stockname, &stockamount) {
-		if stockname == stock {
-			hasStock = true
-			break
-		}
-
-	}
-	if err := iter.Close(); err != nil {
-		panic(err)
-	}
-
-	if !hasStock {
-		return
-	}
-
-	usableStocks = stockamount
-	//if not close the session
-	if (stockValue * usableStocks) < sellStockDollars {
-
-		return
-	}
+	// unlikely but has happened before
 	if stockValue == 0 {
+		log.Printf("[%d] Stock '%s' price is 0. Cannot buy", transactionNum, stock)
+		return
+	}
+	stockToSell := sellStockValue / stockValue
+	potentialProfit := stockToSell * stockValue
+
+	userUUID, stockAmount, ownsStock := ratdatabase.GetStockAmountOwned(userId, stock)
+	if !ownsStock || stockToSell > stockAmount {
+		log.Printf("[%d] %s doesn't have enough stock '%s' to sell. Not proceeding with sell", transactionNum, userId, stock)
 		return
 	}
 
-	sellableStocks := sellStockDollars / stockValue
-	usableStocks = usableStocks - sellableStocks
-	usableStocksString := strconv.FormatInt(int64(usableStocks), 10)
+	// Remove stock from userstocks table and move to pendingselltransaction table
+	newStockAmount := stockAmount - stockToSell
+	ratdatabase.UpdateUserStockByUUID(userUUID, stock, newStockAmount)
+	transactionUUID := ratdatabase.InsertPendingSellTransaction(userId, stock, potentialProfit, stockValue)
+	log.Printf("[%d] User %s sell transaction for %d %s@%d pending", transactionNum, userId, stockAmount, stock, stockValue)
 
-	pendingCash := sellableStocks * stockValue
-	pendingCashString := strconv.FormatInt(int64(pendingCash), 10)
-	stockValueString := strconv.FormatInt(int64(stockValue), 10)
+	time.Sleep(time.Second * 62)
 
-	if err := sessionGlobal.Query("UPDATE userstocks SET stockamount =" + usableStocksString + " WHERE usid=" + usid).Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
-
-	u := uuid.NewV1()
-	f := uuid.Formatter(u, uuid.FormatCanonical)
-
-	if err := sessionGlobal.Query("INSERT INTO sellpendingtransactions (pid, userid, pendingCash, stock, stockValue) VALUES (" + f + ", '" + userId + "', " + pendingCashString + ", '" + stock + "' , " + stockValueString + ")").Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
-
-	updateStateSell(userId, f, usid)
-}
-
-func updateStateSell(userId string, uuid string, usid string) {
-	//print("In update sell")
-	timer1 := time.NewTimer(time.Second * 62)
-
-	<-timer1.C
-
-	var pendingCash int
-	var pendingStocks int
-	var currentStocks int
-	var totalStocks int
-	var count int
-
-	//check if remaining transaction still exists
-	if err := sessionGlobal.Query("select count(*) from sellpendingtransactions where userid='" + userId + "' and pid=" + uuid).Scan(&count); err != nil {
-		panic(err)
-	}
-
-	if count == 0 {
+	// If transaction isn't alive, nothing to do
+	if !ratdatabase.SellTransactionAlive(userId, transactionUUID) {
 		return
 	}
+	log.Printf("[%d] Cancelling '%s' request to sell %.2f of stock %s\n", transactionNum, userId, float64(sellStockValue/100), stock)
 
-	//obtain number of stocks for expired transaction
-	if err := sessionGlobal.Query("select pendingcash, stockvalue from sellpendingtransactions where userid='"+userId+"' and pid="+uuid).Scan(&pendingCash, &pendingStocks); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
+	// delete pending transaction
+	ratdatabase.DeletePendingSellTransaction(userId, transactionUUID)
 
-	//delete pending transaction
-	if err := sessionGlobal.Query("delete from sellpendingtransactions where pid=" + uuid + " and userid='" + userId + "'").Exec(); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
-	//get current users stock amount
-	if err := sessionGlobal.Query("select stockamount from userstocks where usid=" + usid).Scan(&currentStocks); err != nil {
-		panic(fmt.Sprintf("problem creating session", err))
-	}
+	// Add stocks back to account
+	_, currentStockAmount, _ := ratdatabase.GetStockAmountOwned(userId, stock)
 
-	//add back stocks to stocks
-	stocks := pendingCash / pendingStocks
-	totalStocks = stocks + currentStocks
-	totalStocksString := strconv.FormatInt(int64(totalStocks), 10)
-
-	//return total stocks to the userstocks
-	if err := sessionGlobal.Query("UPDATE userstocks SET stockamount =" + totalStocksString + " WHERE usid=" + usid).Exec(); err != nil {
-		panic(err)
-	}
+	latestStockAmount := currentStockAmount + stockToSell
+	ratdatabase.UpdateUserStockByUUID(userUUID, stock, latestStockAmount)
 
 }

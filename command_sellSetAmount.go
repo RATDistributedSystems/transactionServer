@@ -23,11 +23,10 @@ func setSellAmount(userId string, stock string, pendingCashString string, transa
 	//divide the pendingCashString by the current quote price to determine the amount of total sellable stocks
 
 	//check current stock price
-	message := quoteRequest(userId, stock, transactionNum)
-	currentStockPrice := stringToCents(message[0])
+	currentStockPrice := quoteRequest(userId, stock, transactionNum)
 
 	//make sure amount wanting to buy isnt too high
-	if (currentStockPrice > pendingCashCents){
+	if currentStockPrice > pendingCashCents {
 		fmt.Println("Current stock price is greater than amount wanting to be sold")
 		return
 	}
@@ -50,7 +49,6 @@ func setSellAmount(userId string, stock string, pendingCashString string, transa
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-
 	//calculate amount of stocks can be bought
 	sellStockAmount := pendingCashCents / currentStockPrice
 	//subtract stocks to allocate from owned stocks
@@ -63,11 +61,9 @@ func setSellAmount(userId string, stock string, pendingCashString string, transa
 		panic(fmt.Sprintf("problem creating session", err))
 	}
 
-
 	//create trigger to sell a certain amount of the stock
 	u := uuid.NewV4()
 	f := uuid.Formatter(u, uuid.FormatCanonical)
-
 
 	//Create new entry for the sell trigger with the sell amount
 	if err := sessionGlobal.Query("INSERT INTO sellTriggers (tid, pendingStocks, stock, userid) VALUES (" + f + ",'" + sellStockAmountString + "', '" + stock + "', '" + userId + "')").Exec(); err != nil {

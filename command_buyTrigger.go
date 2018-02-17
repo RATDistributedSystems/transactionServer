@@ -40,8 +40,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 			return
 		}
 
-		message := quoteRequest(userId, stock, transactionNum)
-		currentStockPrice := stringToCents(message[0])
+		currentStockPrice := quoteRequest(userId, stock, transactionNum)
 
 		//execute the buy instantly if trigger condition is true
 		if currentStockPrice <= stockPriceTrigger {
