@@ -30,7 +30,7 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	newBalance := currentBalance - pendingTransactionCash
 	ratdatabase.UpdateUserBalance(userId, newBalance)
 	uuid := ratdatabase.InsertPendingBuyTransaction(userId, pendingTransactionCash, stock, stockValue)
-	log.Printf("[%d] User %s buy transaction for %d %s@%d pending", transactionNum, userId, stockAmount, stock, stockValue)
+	log.Printf("[%d] User %s buy transaction for %d %s@%.2f pending", transactionNum, userId, stockAmount, stock, float64(stockValue))
 
 	//waits for 62 seconds and checks if the transaction is still there. Remove if it is
 	time.Sleep(time.Second * 62)
