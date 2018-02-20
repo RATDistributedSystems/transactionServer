@@ -46,7 +46,7 @@ func initCassandra() {
 
 func initTCPListener() {
 	// Listen for incoming connections.
-	addr, protocol := configurationServer.GetServerDetails("transaction")
+	addr, protocol := configurationServer.GetListnerDetails("transaction")
 	l, err := net.Listen(protocol, addr)
 	if err != nil {
 		panic(err)
