@@ -1,10 +1,10 @@
 #!/bin/bash
 
 cd ..
-docker run --rm -it -v "$GOPATH":/gopath -v "$(pwd)":/app -e "GOPATH=/gopath" -w /app golang:1.9 sh -c 'CGO_ENABLED=0 go build -a --installsuffix cgo --ldflags="-s" -o transaction_server'
+CGO_ENABLED=0 go build -a --installsuffix cgo --ldflags="-s" -o transactionserver
 
 # Build the image
-docker build -t transaction_server .
+docker build -t transactionserver .
 
 # Remove remnants
-rm -f transaction_server
+rm -f transactionserver
