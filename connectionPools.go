@@ -8,8 +8,9 @@ import (
 
 type connectionPool struct {
 	serverName      string
-	poolSize        int
-	maxPoolSize		int
+	currentSize     int
+	stepSize        int
+	maxPoolSize     int
 	freeConnections []net.Conn
 	mux             sync.Mutex
 }
@@ -19,8 +20,9 @@ func initializePool(poolSize int, maxPoolSize int, serverName string) *connectio
 	connPool.maxPoolSize = maxPoolSize
 	connPool.freeConnections = make([]net.Conn, 0)
 	connPool.serverName = serverName
-	connPool.poolSize = poolSize
-	connPool.addConnections()
+	connPool.currentSize = poolSize
+	connPool.stepSize = 10
+	connPool.addConnections(connPool.currentSize)
 	return &connPool
 }
 
@@ -29,7 +31,7 @@ func (c *connectionPool) getConnection() net.Conn {
 
 	// if none are free add more
 	if len(c.freeConnections) < 1 {
-		c.addConnections()
+		c.addConnections(c.stepSize)
 	}
 
 	conn := c.freeConnections[0]
@@ -44,11 +46,11 @@ func (c *connectionPool) returnConnection(conn net.Conn) {
 	c.mux.Unlock()
 }
 
-func (c *connectionPool) addConnections() {
-	if(len(c.freeConnections) > c.maxPoolSize){
+func (c *connectionPool) addConnections(stepSize int) {
+	if len(c.freeConnections) > c.maxPoolSize {
 		return
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < stepSize; i++ {
 		addr, protocol := configurationServer.GetServerDetails(c.serverName)
 		conn, err := net.Dial(protocol, addr)
 		if err != nil {
