@@ -6,7 +6,7 @@ import (
 )
 
 func dumpUser(userId string, filename string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "DUMPLOG", userId, "", "")
+	//logUserEvent("TS1", transactionNum, "DUMPLOG", userId, "", "")
 	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG,%s,%s", userId, filename))
 	log.Printf("Dumping log data for %s\n", userId)
 }

@@ -8,7 +8,7 @@ import (
 
 //Set maxmimum price of a stock before the stock gets auto bought
 func setBuyTrigger(userId string, stock string, stockPriceTriggerString string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
+	//logUserEvent("TS1", transactionNum, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
 	//convert trigger price from string to int cents
 	stockPriceTrigger := stringToCents(stockPriceTriggerString)
 	//fmt.Println(stockPriceTrigger);
@@ -71,7 +71,8 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 
 				//grab pendingCash for the buy trigger
 				if err := sessionGlobal.Query("SELECT pendingCash FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
-					panic(fmt.Sprintf("problem getting usable cash form users", err))
+					return
+					//panic(fmt.Sprintf("problem getting usable cash form users", err))
 				}
 
 				//calculate amount of stocks can be bought
@@ -117,7 +118,8 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 
 				//get pending cash in the trigger
 				if err := sessionGlobal.Query("SELECT pendingCash FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&pendingCash); err != nil {
-					panic(fmt.Sprintf("problem getting usable cash form users", err))
+					return
+					//panic(fmt.Sprintf("problem getting usable cash form users", err))
 				}
 
 				//IF USE DOESNT OWN ANY OF THIS STOCK
@@ -135,7 +137,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 				}
 
 				//insert new stock record
-				if err := sessionGlobal.Query("INSERT INTO userstocks (usid, userid, stockamount, stock) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", " + stock + ")").Exec(); err != nil {
+				if err := sessionGlobal.Query("INSERT INTO userstocks (usid, userid, stockamount, stock) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", '" + stock + "')").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 

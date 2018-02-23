@@ -7,7 +7,7 @@ import (
 )
 
 func setSellTrigger(userId string, stock string, stockSellPrice string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
+	//logUserEvent("TS1", transactionNum, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
 	stockSellPriceCents := stringToCents(stockSellPrice)
 	stockSellPriceCentsString := strconv.FormatInt(int64(stockSellPriceCents), 10)
 

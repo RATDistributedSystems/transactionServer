@@ -8,7 +8,7 @@ import (
 
 func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) []string {
 	//log events
-	logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
+	//logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
 
 	//check if a cached quote exists
 	if(cacheExists(stockSymbol) == true){

@@ -7,7 +7,7 @@ import (
 )
 
 func quoteRequest(userID string, stockSymbol string, transactionNum int) int {
-	logUserEvent("TS1", transactionNum, "QUOTE", userID, stockSymbol, "")
+	//logUserEvent("TS1", transactionNum, "QUOTE", userID, stockSymbol, "")
 
 	// Make Quote Request
 	conn := GetQuoteServerConnection()

@@ -9,7 +9,7 @@ import (
 
 //sets the total cash to gain from selling a stock
 func setSellAmount(userId string, stock string, pendingCashString string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "SET_SELL_AMOUNT", userId, stock, pendingCashString)
+	//logUserEvent("TS1", transactionNum, "SET_SELL_AMOUNT", userId, stock, pendingCashString)
 	pendingCashCents := stringToCents(pendingCashString)
 	//check if user owns stock
 	ownedStockAmount, _ := checkStockOwnership(userId, stock)

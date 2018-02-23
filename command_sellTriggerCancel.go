@@ -6,7 +6,7 @@ import (
 )
 
 func cancelSellTrigger(userId string, stock string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "CANCEL_SET_SELL", userId, stock, "")
+	//logUserEvent("TS1", transactionNum, "CANCEL_SET_SELL", userId, stock, "")
 	sellExists := checkDependency("CANCEL_SET_SELL", userId, stock)
 	if sellExists == false {
 		//fmt.Println("cannot CANCEL, no sells pending")

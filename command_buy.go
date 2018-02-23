@@ -9,7 +9,7 @@ import (
 
 func buy(userId string, stock string, pendingCashString string, transactionNum int) {
 
-	logUserEvent("TS1", transactionNum, "BUY", userId, stock, pendingCashString)
+	//logUserEvent("TS1", transactionNum, "BUY", userId, stock, pendingCashString)
 
 	pendingTransactionCash := stringToCents(pendingCashString)
 	stockValue := quoteRequest(userId, stock, transactionNum)
@@ -50,7 +50,7 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 }
 
 func cancelBuy(userId string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "CANCEL_BUY", userId, "", "")
+	//logUserEvent("TS1", transactionNum, "CANCEL_BUY", userId, "", "")
 
 	uuid, holdingCash, stockName, _, exists := ratdatabase.GetLastPendingBuyTransaction(userId)
 
@@ -69,7 +69,7 @@ func cancelBuy(userId string, transactionNum int) {
 }
 
 func commitBuy(userID string, transactionNum int) {
-	logUserEvent("TS1", transactionNum, "COMMIT_BUY", userID, "", "")
+	//logUserEvent("TS1", transactionNum, "COMMIT_BUY", userID, "", "")
 
 	uuid, holdingCash, stockName, stockPrice, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
