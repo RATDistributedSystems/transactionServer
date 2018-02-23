@@ -55,7 +55,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 			var hasStock bool
 
 			//check if user currently owns any of this stock
-			iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
+			iter := sessionGlobal.Query("SELECT usid, stock, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
 			for iter.Scan(&usid, &ownedstockname, &stockamount) {
 				if ownedstockname == stock {
 					hasStock = true
@@ -135,7 +135,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 				}
 
 				//insert new stock record
-				if err := sessionGlobal.Query("INSERT INTO userstocks (usid, userid, stockamount, stockname) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", '" + stock + "')").Exec(); err != nil {
+				if err := sessionGlobal.Query("INSERT INTO userstocks (usid, userid, stockamount, stock) VALUES (uuid(), '" + userId + "', " + buyableStocksString + ", " + stock + ")").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 

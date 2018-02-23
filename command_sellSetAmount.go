@@ -66,7 +66,7 @@ func setSellAmount(userId string, stock string, pendingCashString string, transa
 	f := uuid.Formatter(u, uuid.FormatCanonical)
 
 	//Create new entry for the sell trigger with the sell amount
-	if err := sessionGlobal.Query("INSERT INTO sellTriggers (tid, pendingStocks, stock, userid) VALUES (" + f + ",'" + sellStockAmountString + "', '" + stock + "', '" + userId + "')").Exec(); err != nil {
+	if err := sessionGlobal.Query("INSERT INTO sellTriggers (tid, pendingStocks, stock, userid) VALUES (" + f + "," + sellStockAmountString + ", '" + stock + "', '" + userId + "')").Exec(); err != nil {
 		panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
 	}
 }

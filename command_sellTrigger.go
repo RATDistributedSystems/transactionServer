@@ -55,14 +55,16 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int, tran
 			//get stocks allocated to sell
 			var pendingStocks int
 			if err := sessionGlobal.Query("SELECT pendingStocks FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "' ").Scan(&pendingStocks); err != nil {
-				panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+				//panic(fmt.Sprintf("Problem inputting to Triggers Table", err))
+				return
 			}
 
 			sellProfits := pendingStocks * currentStockPrice
 
 			//delete pending transaction
 			if err := sessionGlobal.Query("DELETE FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "' ").Exec(); err != nil {
-				panic(err)
+				//panic(err)
+				return
 			}
 
 			//add profits from selling stock to account
