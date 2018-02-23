@@ -59,14 +59,16 @@ func initTCPListener() {
 		conn, err := l.Accept()
 		if err != nil {
 			log.Panic(err)
+		} else{
+			transactionNumGlobal++
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn)
+		go handleRequest(conn, transactionNumGlobal)
 	}
 
 }
 
-func handleRequest(conn net.Conn) {
+func handleRequest(conn net.Conn, transactionNumGlobal int) {
 	tp := textproto.NewReader(bufio.NewReader(conn))
 	untrimmedMsg, err := tp.ReadLine()
 	if err != nil {
@@ -74,12 +76,11 @@ func handleRequest(conn net.Conn) {
 	}
 	conn.Close()
 	message := strings.TrimSpace(untrimmedMsg)
-	executeCommand(message)
+	executeCommand(message, transactionNumGlobal)
 }
 
-func executeCommand(command string) {
+func executeCommand(command string, transactionNumGlobal int) {
 	result := strings.Split(command, ",")
-	transactionNumGlobal++
 	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, command)
 
 	switch result[0] {
