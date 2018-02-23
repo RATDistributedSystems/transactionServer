@@ -38,12 +38,12 @@ func setSellAmount(userId string, stock string, pendingCashString string, transa
 	var stockamount int
 
 	//check how much of the stock the user has
-	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
+	iter := sessionGlobal.Query("SELECT usid, stock, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
 	for iter.Scan(&usid, &ownedstockname, &stockamount) {
 		if ownedstockname == sellStockName {
 			break
 		}
-		//fmt.Println("STOCKS: ", stockname, stockamount)
+		//fmt.Println("STOCKS: ", stock, stockamount)
 	}
 	if err := iter.Close(); err != nil {
 		panic(fmt.Sprintf("problem creating session", err))

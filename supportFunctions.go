@@ -95,7 +95,7 @@ func checkStockOwnership(userId string, stock string) (int, string) {
 	var usid string
 	//var hasStock bool
 
-	iter := sessionGlobal.Query("SELECT usid, stockname, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
+	iter := sessionGlobal.Query("SELECT usid, stock, stockamount FROM userstocks WHERE userid='" + userId + "'").Iter()
 	for iter.Scan(&usid, &ownedstockname, &ownedstockamount) {
 		if ownedstockname == stock {
 			//hasStock = true
