@@ -12,7 +12,8 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	//logUserEvent("TS1", transactionNum, "BUY", userId, stock, pendingCashString)
 
 	pendingTransactionCash := stringToCents(pendingCashString)
-	stockValue := quoteRequest(userId, stock, transactionNum)
+	//stockValue := quoteRequest(userId, stock, transactionNum)
+	stockValue := quoteCacheRequest(userId, stock, transactionNum)
 	stockAmount := pendingTransactionCash / stockValue
 	currentBalance := ratdatabase.GetUserBalance(userId)
 

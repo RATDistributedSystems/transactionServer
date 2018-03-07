@@ -47,7 +47,7 @@ func cacheExists(stock string) bool{
 
 }
 
-func cacheReturn(stock string) []string {
+func cacheReturn(stock string) int {
 	fmt.Printf("Returning Cache Key %s \n", stock)
 	val, err := redisConn.Get(stock).Result()
 	if err != nil{
@@ -56,5 +56,6 @@ func cacheReturn(stock string) []string {
 	//break comma delimitted data in to a message
 	messageArray := strings.Split(val, ",")
 	//return the quote array
-	return messageArray
+	//return messageArray
+	return stringToCents(messageArray[0])
 }

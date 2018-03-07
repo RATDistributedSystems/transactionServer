@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) []string {
+func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) int {
 	//log events
 	//logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
 
@@ -25,6 +25,7 @@ func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) []
 		cacheAdd(stockSymbol, message)
 		messageArray := strings.Split(message, ",")
 		logQuoteEvent("TS1", transactionNum, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
-		return messageArray
+		//return messageArray
+		return stringToCents(messageArray[0])
 	}
 }

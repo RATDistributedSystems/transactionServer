@@ -41,6 +41,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 		}
 
 		currentStockPrice := quoteRequest(userId, stock, transactionNum)
+		//currentStockPrice := quoteCacheRequest(userId, stock, transactionNum)
 
 		//execute the buy instantly if trigger condition is true
 		if currentStockPrice <= stockPriceTrigger {

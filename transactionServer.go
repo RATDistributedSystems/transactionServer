@@ -23,7 +23,9 @@ var auditPool = initializePool(150, 190, "audit")
 func main() {
 	uuid.Init()
 	initCassandra()
+	initRedis()
 	initTCPListener()
+
 }
 
 func GetQuoteServerConnection() net.Conn {
@@ -89,7 +91,8 @@ func executeCommand(command string, transactionNumGlobal int) {
 		addUser(result[1], result[2], transactionNumGlobal)
 	case "QUOTE":
 		logUserEvent("TS1", transactionNumGlobal, "QUOTE", result[1], result[2], "")
-		quoteRequest(result[1], result[2], transactionNumGlobal)
+		//quoteRequest(result[1], result[2], transactionNumGlobal)
+		quoteCacheRequest(result[1], result[2], transactionNumGlobal)
 	case "BUY":
 		logUserEvent("TS1", transactionNumGlobal, "BUY", result[1], result[2], result[3])
 		buy(result[1], result[2], result[3], transactionNumGlobal)

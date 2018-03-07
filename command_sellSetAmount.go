@@ -23,7 +23,8 @@ func setSellAmount(userId string, stock string, pendingCashString string, transa
 	//divide the pendingCashString by the current quote price to determine the amount of total sellable stocks
 
 	//check current stock price
-	currentStockPrice := quoteRequest(userId, stock, transactionNum)
+	//currentStockPrice := quoteRequest(userId, stock, transactionNum)
+	currentStockPrice := quoteCacheRequest(userId, stock, transactionNum)
 
 	//make sure amount wanting to buy isnt too high
 	if currentStockPrice > pendingCashCents {

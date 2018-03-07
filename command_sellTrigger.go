@@ -47,6 +47,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int, tran
 
 		//retrieve current stock price
 		currentStockPrice := quoteRequest(userId, stock, transactionNum)
+		//currentStockPrice := quoteCacheRequest(userId, stock, transactionNum)
 
 		if currentStockPrice > stockSellPriceCents {
 

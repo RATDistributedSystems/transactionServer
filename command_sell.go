@@ -12,7 +12,8 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 	//logUserEvent("TS1", transactionNum, "SELL", userId, stock, sellStockDollarsString)
 
 	sellStockValue := stringToCents(sellStockDollarsString)
-	stockValue := quoteRequest(userId, stock, transactionNum)
+	//stockValue := quoteRequest(userId, stock, transactionNum)
+	stockValue := quoteCacheRequest(userId, stock, transactionNum)
 
 	// unlikely but has happened before
 	if stockValue == 0 {
