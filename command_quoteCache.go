@@ -17,7 +17,6 @@ func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) in
 		return cacheReturn(stockSymbol)
 	}else{
 		//if it doesnt access the quote server normally
-		logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
 		conn := GetQuoteServerConnection() //conn := quotePool.getConnection()
 		fmt.Fprintf(conn, "%s,%s \n", stockSymbol, userId)
 		message, _ := bufio.NewReader(conn).ReadString('\n')
