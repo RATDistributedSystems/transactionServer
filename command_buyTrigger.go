@@ -2,25 +2,56 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
+
+	"github.com/RATDistributedSystems/utilities/ratdatabase"
 )
 
-//Set maxmimum price of a stock before the stock gets auto bought
-func setBuyTrigger(userId string, stock string, stockPriceTriggerString string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
-	//convert trigger price from string to int cents
-	stockPriceTrigger := stringToCents(stockPriceTriggerString)
-	//fmt.Println(stockPriceTrigger);
+func setBuyAmount(userID string, stock string, pendingCashString string, transactionNum int) {
+	//logUserEvent("TS1", transactionNum, "SET_BUY_AMOUNT", userId, stock, pendingCashString)
+	buyAmount := stringToCents(pendingCashString)
+	userBalance := ratdatabase.GetUserBalance(userID)
 
-	stockPriceTriggerString = strconv.FormatInt(int64(stockPriceTrigger), 10)
-
-	//set the triggerValue and create thread to check the quote server
-	if err := sessionGlobal.Query("UPDATE buyTriggers SET triggerValue =" + stockPriceTriggerString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
-		panic(fmt.Sprintf("problem setting trigger", err))
+	//if the user doesnt have enough funds cancel the allocation
+	if userBalance < buyAmount {
+		msg := "[%d] Not enough cash (%.2f) for buy amount trigger (%.2f) for %s"
+		log.Printf(msg, transactionNum, float64(userBalance)/100, float64(buyAmount)/100, userID)
+		return
 	}
 
-	go checkBuyTrigger(userId, stock, stockPriceTrigger, transactionNum)
+	// Update user balance and add trigger
+	oldTriggerAmount := ratdatabase.InsertSetBuyTrigger(userID, stock, buyAmount)
+	newBalance := userBalance + oldTriggerAmount - buyAmount
+	ratdatabase.UpdateUserBalance(userID, newBalance)
+}
+
+func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, transactionNum int) {
+	//logUserEvent("TS1", transactionNum, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
+	stockPriceTrigger := stringToCents(stockPriceTriggerString)
+	buySetAmountExists := ratdatabase.UpdateBuyTriggerPrice(userID, stock, stockPriceTrigger)
+
+	if !buySetAmountExists {
+		msg := "[%d] Cannot set buy trigger price (%s). %s hasn't called BuySetAmount for stock %s"
+		log.Printf(msg, transactionNum, stockPriceTriggerString, userID, stock)
+		return
+	}
+
+	checkBuyTrigger(userID, stock, stockPriceTrigger, transactionNum)
+}
+
+func cancelBuyTrigger(userID string, stock string, transactionNum int) {
+	//logUserEvent("TS1", transactionNum, "CANCEL_SET_BUY", userId, stock, "")
+	returnAmount := ratdatabase.CancelBuyTrigger(userID, stock)
+
+	if returnAmount == 0 {
+		return
+	}
+
+	userBalance := ratdatabase.GetUserBalance(userID)
+	newBalance := userBalance + returnAmount
+	ratdatabase.UpdateUserBalance(userID, newBalance)
 
 }
 
@@ -40,8 +71,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 			return
 		}
 
-		currentStockPrice := quoteRequest(userId, stock, transactionNum)
-		//currentStockPrice := quoteCacheRequest(userId, stock, transactionNum)
+		currentStockPrice := quoteCacheRequest(userId, stock, transactionNum)
 
 		//execute the buy instantly if trigger condition is true
 		if currentStockPrice <= stockPriceTrigger {
