@@ -14,6 +14,9 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 	pendingTransactionCash := stringToCents(pendingCashString)
 	//stockValue := quoteRequest(userId, stock, transactionNum)
 	stockValue := quoteCacheRequest(userId, stock, transactionNum)
+	if stockValue <= 0 {
+		return
+	}
 	stockAmount := pendingTransactionCash / stockValue
 	currentBalance := ratdatabase.GetUserBalance(userId)
 
