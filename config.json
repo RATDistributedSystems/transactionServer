@@ -19,11 +19,6 @@
             "address": "localhost",
             "port": "44446",
             "protocol": "tcp"
-        },
-        "cache" : {
-            "address" : "localhost",
-            "port" : "44445",
-            "protocol": "tcp"
         }
     },
 
