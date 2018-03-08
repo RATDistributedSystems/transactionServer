@@ -7,17 +7,22 @@
         },
         "transaction" : {
             "address": "localhost",
-            "port": "44441",
+            "port": "44440",
             "protocol": "tcp"
         }, 
         "audit" : {
             "address": "localhost",
-            "port": "44442",
+            "port": "44443",
             "protocol": "tcp"
         }, 
         "quote" : {
             "address": "localhost",
-            "port": "44445",
+            "port": "44446",
+            "protocol": "tcp"
+        },
+        "cache" : {
+            "address" : "localhost",
+            "port" : "44445",
             "protocol": "tcp"
         }
     },
@@ -25,6 +30,8 @@
     "misc" : {
         "cassandra_ip" : "localhost",
         "cassandra_keyspace" : "userdb",
-        "cassandra_proto" : "4"
+        "cassandra_proto" : "4",
+        "cache_address" : "localhost",
+        "cache_port" : "44445"
     } 
 }

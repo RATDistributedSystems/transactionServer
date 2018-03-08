@@ -14,9 +14,12 @@ const ttl = time.Second * 60
 
 
 func initRedis(){
+	addr := configurationServer.GetValue("cache_address")
+	port := configurationServer.GetValue("cache_port")
+	fmt.Println(addr + " " + port)
 	redisConn = redis.NewClient(&redis.Options{
 		Network:  "tcp",
-		Addr:     "localhost:6379",
+		Addr:     addr+":"+port,
 		Password: "", 
 		DB:       0, //using the default DB
 	})
