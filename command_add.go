@@ -6,7 +6,7 @@ import (
 
 func addUser(userID string, usableCashString string, transactionNum int) {
 	//logUserEvent("TS1", transactionNum, "ADD", userID, "", usableCashString)
-	logAccountTransactionEvent("TS1", transactionNum, "ADD", userID, usableCashString)
+	logAccountTransactionEvent(serverName, transactionNum, "ADD", userID, usableCashString)
 
 	addFundAmount := stringToCents(usableCashString)
 	if ratdatabase.UserExists(userID) {
