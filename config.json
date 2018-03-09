@@ -27,6 +27,7 @@
         "cassandra_keyspace" : "userdb",
         "cassandra_proto" : "4",
         "cache_address" : "localhost",
-        "cache_port" : "44445"
+        "cache_port" : "44445",
+        "ts_name" : "TS1"
     } 
 }
