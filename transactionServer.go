@@ -17,6 +17,7 @@ var sessionGlobal *gocql.Session
 var transactionNumGlobal = 0
 var configurationServer = utilities.GetConfigurationFile("config.json")
 var auditPool = initializePool(150, 190, "audit")
+var serverName = configurationServer.GetValue("ts_name")
 
 //var quotePool = initializePool(100, "quote")
 
@@ -48,6 +49,7 @@ func initCassandra() {
 
 func initTCPListener() {
 	// Listen for incoming connections.
+
 	addr, protocol := configurationServer.GetListnerDetails("transaction")
 	l, err := net.Listen(protocol, addr)
 	if err != nil {
@@ -87,57 +89,57 @@ func executeCommand(command string, transactionNumGlobal int) {
 
 	switch result[0] {
 	case "ADD":
-		logUserEvent("TS1", transactionNumGlobal, "ADD", result[1], "", result[2])
+		logUserEvent(serverName, transactionNumGlobal, "ADD", result[1], "", result[2])
 		addUser(result[1], result[2], result[3])
 	case "QUOTE":
-		logUserEvent("TS1", transactionNumGlobal, "QUOTE", result[1], result[2], "")
+		logUserEvent(serverName, transactionNumGlobal, "QUOTE", result[1], result[2], "")
 		//quoteRequest(result[1], result[2], transactionNumGlobal)
 		quoteCacheRequest(result[1], result[2], result[3])
 	case "BUY":
-		logUserEvent("TS1", transactionNumGlobal, "BUY", result[1], result[2], result[3])
+		logUserEvent(serverName, transactionNumGlobal, "BUY", result[1], result[2], result[3])
 		buy(result[1], result[2], result[3], result[4])
 	case "COMMIT_BUY":
-		logUserEvent("TS1", result[2], "COMMIT_BUY", result[1], "", "")
+		logUserEvent(serverName, result[2], "COMMIT_BUY", result[1], "", "")
 		commitBuy(result[1], result[2])
 	case "CANCEL_BUY":
-		logUserEvent("TS1", result[2], "CANCEL_BUY", result[1], "", "")
+		logUserEvent(serverName, result[2], "CANCEL_BUY", result[1], "", "")
 		cancelBuy(result[1], result[2])
 	case "SELL":
-		logUserEvent("TS1", result[4], "SELL", result[1], result[2], result[3])
+		logUserEvent(serverName, result[4], "SELL", result[1], result[2], result[3])
 		sell(result[1], result[2], result[3], result[])
 	case "COMMIT_SELL":
-		logUserEvent("TS1", result[2], "COMMIT_SELL", result[1],"", "")
+		logUserEvent(serverName, result[2], "COMMIT_SELL", result[1],"", "")
 		commitSell(result[1], result[2])
 	case "CANCEL_SELL":
-		logUserEvent("TS1", result[2], "CANCEL_SELL", result[1], "", "")
+		logUserEvent(serverName, result[2], "CANCEL_SELL", result[1], "", "")
 		cancelSell(result[1], result[2])
 	case "SET_BUY_AMOUNT":
-		logUserEvent("TS1", result[4], "SET_BUY_AMOUNT", result[1], result[2], result[3])
+		logUserEvent(serverName, result[4], "SET_BUY_AMOUNT", result[1], result[2], result[3])
 		setBuyAmount(result[1], result[2], result[3], result[4])
 	case "SET_BUY_TRIGGER":
-		logUserEvent("TS1", result[4], "SET_BUY_TRIGGER", result[1], result[2], result[3])
+		logUserEvent(serverName, result[4], "SET_BUY_TRIGGER", result[1], result[2], result[3])
 		setBuyTrigger(result[1], result[2], result[3], result[4])
 	case "CANCEL_SET_BUY":
-		logUserEvent("TS1", result[3], "CANCEL_SET_BUY", result[1], result[2], "")
+		logUserEvent(serverName, result[3], "CANCEL_SET_BUY", result[1], result[2], "")
 		cancelBuyTrigger(result[1], result[2], result[3])
 	case "SET_SELL_AMOUNT":
-		logUserEvent("TS1", result[4], "SET_SELL_AMOUNT", result[1], result[2], result[3])
+		logUserEvent(serverName, result[4], "SET_SELL_AMOUNT", result[1], result[2], result[3])
 		setSellAmount(result[1], result[2], result[3], result[4])
 	case "SET_SELL_TRIGGER":
-		logUserEvent("TS1", result[4], "SET_SELL_TRIGGER", result[1], result[2], result[3])
+		logUserEvent(serverName, result[4], "SET_SELL_TRIGGER", result[1], result[2], result[3])
 		setSellTrigger(result[1], result[2], result[3], result[4])
 	case "CANCEL_SET_SELL":
-		logUserEvent("TS1", result[3], "CANCEL_SET_SELL", result[1], result[2], "")
+		logUserEvent(serverName, result[3], "CANCEL_SET_SELL", result[1], result[2], "")
 		cancelSellTrigger(result[1], result[2], result[3])
 	case "DISPLAY_SUMMARY":
-		logUserEvent("TS1", result[2], "DISPLAY_SUMMARY", result[1], "", "")
+		logUserEvent(serverName, result[2], "DISPLAY_SUMMARY", result[1], "", "")
 		displaySummary(result[1], result[2])
 	case "DUMPLOG":
 		if len(result) == 3 {
-			logUserEvent("TS1", result[3], "DUMPLOG", result[1], "", "")
+			logUserEvent(serverName, result[3], "DUMPLOG", result[1], "", "")
 			dumpUser(result[1], result[2], result[3])
 		} else if len(result) == 2 {
-			logUserEvent("TS1", result[2], "DUMPLOG", "-1", "", "")
+			logUserEvent(serverName, result[2], "DUMPLOG", "-1", "", "")
 			dump(result[1], result[2])
 		}
 	}
