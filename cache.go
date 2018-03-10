@@ -23,6 +23,8 @@ func initRedis(){
 		Password: "", 
 		DB:       0, //using the default DB
 	})
+	_, err := redisConn.Ping().Result()
+	panic(err)
 	fmt.Println("Redis Connection Created")
 }
 
