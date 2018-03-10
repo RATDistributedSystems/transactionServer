@@ -37,7 +37,8 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 
 	// Remove stock from userstocks table and move to pendingselltransaction table
 	newStockAmount := stockAmount - stockToSell
-	ratdatabase.UpdateUserStockByUUID(userUUID, stock, newStockAmount)
+	ratdatabase.UpdateUserStockByUserAndStock(userId, stock, newStockAmount)
+	//ratdatabase.UpdateUserStockByUUID(userUUID, stock, newStockAmount)
 	transactionUUID := ratdatabase.InsertPendingSellTransaction(userId, stock, potentialProfit, stockValue)
 	log.Printf("[%d] User %s sell transaction for %d %s@%.2f pending", transactionNum, userId, stockToSell, stock, float64(stockValue/100))
 
@@ -72,11 +73,12 @@ func cancelSell(userID string, transactionNum int) {
 
 	// Return the stock
 	stockToReturn := profits / stockPrice
-	stockUUID, stockAmount, owmsStock := ratdatabase.GetStockAmountOwned(userID, stockName)
+	_, stockAmount, owmsStock := ratdatabase.GetStockAmountOwned(userID, stockName)
 
 	if owmsStock {
 		newStockAmount := stockAmount + stockToReturn
-		ratdatabase.UpdateUserStockByUUID(stockUUID, stockName, newStockAmount)
+		ratdatabase.UpdateUserStockByUserAndStock(userID, stockName, newStockAmount)
+		//ratdatabase.UpdateUserStockByUUID(stockUUID, stockName, newStockAmount)
 	} else {
 		ratdatabase.AddStockToPortfolio(userID, stockName, stockToReturn)
 	}
