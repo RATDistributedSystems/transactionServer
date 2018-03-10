@@ -34,18 +34,20 @@ func cacheAdd(stockName string, stockInfo string){
 	}
 }
 
-func cacheExists(stock string) bool{
+func cacheExists(stock string) (bool,int) {
 	fmt.Printf("checking if %s exists", stock)
 	val, err := redisConn.Get(stock).Result()
-	fmt.Println(val)
+	
+	//fmt.Println(val)
 	if err == redis.Nil{
 		fmt.Printf("Cache %s DNE \n", stock)
-		return false
+		return false, 0
 	}else if err != nil {
 		panic(err)
 	}else {
+		messageArray := strings.Split(val, ",")
 		fmt.Printf("Cache %s Exists \n", stock)
-		return true
+		return true, stringToCents(messageArray[0])
 	}
 
 }

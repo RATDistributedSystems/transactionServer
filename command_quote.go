@@ -17,6 +17,6 @@ func quoteRequest(userID string, stockSymbol string, transactionNum int) int {
 	message, _ := bufio.NewReader(conn).ReadString('\n')
 	conn.Close()
 	messageArray := strings.Split(message, ",")
-	logQuoteEvent("TS1", transactionNum, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
+	logQuoteEvent(serverName, transactionNum, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
 	return stringToCents(messageArray[0])
 }

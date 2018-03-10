@@ -85,11 +85,11 @@ func commitBuy(userID string, transactionNum int) {
 	stockBought := holdingCash / stockPrice
 	surplusCash := holdingCash - (stockBought * stockPrice)
 
-	stockUUID, stockAmount, hasStock := ratdatabase.GetStockAmountOwned(userID, stockName)
+	_, stockAmount, hasStock := ratdatabase.GetStockAmountOwned(userID, stockName)
 
 	if hasStock {
 		newStockAmount := stockAmount + stockBought
-		ratdatabase.UpdateUserStockByUUID(stockUUID, stockName, newStockAmount)
+		ratdatabase.UpdateUserStockByUserAndStock(userID, stockName, newStockAmount)
 	} else {
 		ratdatabase.AddStockToPortfolio(userID, stockName, stockBought)
 	}

@@ -10,11 +10,14 @@ func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) in
 	//log events
 	//logUserEvent("TS1", transactionNum, "QUOTE", userId, stockSymbol, "")
 
+	var val, data = cacheExists(stockSymbol);
 	//check if a cached quote exists
-	if(cacheExists(stockSymbol) == true){
+	if(val != false){
 		fmt.Println("check if key exists")
 		//obtain values 
-		return cacheReturn(stockSymbol)
+		//return cacheReturn(stockSymbol)
+		//messageArray := strings.Split(data, ",")
+		return data
 	}else{
 		//if it doesnt access the quote server normally
 		conn := GetQuoteServerConnection() //conn := quotePool.getConnection()
@@ -23,7 +26,7 @@ func quoteCacheRequest(userId string, stockSymbol string, transactionNum int) in
 		conn.Close() //quotePool.returnConnection(conn)
 		cacheAdd(stockSymbol, message)
 		messageArray := strings.Split(message, ",")
-		logQuoteEvent("TS1", transactionNum, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
+		logQuoteEvent(serverName, transactionNum, messageArray[0], messageArray[1], messageArray[2], messageArray[3], messageArray[4])
 		//return messageArray
 		return stringToCents(messageArray[0])
 	}
