@@ -11,7 +11,7 @@
             "protocol": "tcp"
         }, 
         "audit" : {
-            "address": "localhost",
+            "address": "rataudit",
             "port": "44443",
             "protocol": "tcp"
         }, 
@@ -23,11 +23,11 @@
     },
 
     "misc" : {
-        "cassandra_ip" : "localhost",
+        "cassandra_ip" : "rattransactiondb",
         "cassandra_keyspace" : "userdb",
         "cassandra_proto" : "4",
-        "cache_address" : "localhost",
-        "cache_port" : "44445",
+        "cache_address" : "ratredis",
+        "cache_port" : "6379",
         "ts_name" : "TS1"
     } 
 }

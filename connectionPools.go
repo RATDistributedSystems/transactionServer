@@ -23,6 +23,7 @@ func initializePool(poolSize int, maxPoolSize int, serverName string) *connectio
 	connPool.currentSize = poolSize
 	connPool.stepSize = 10
 	connPool.addConnections(connPool.currentSize)
+	log.Printf("Created Connection Pool (%d) for %s", poolSize, serverName)
 	return &connPool
 }
 
@@ -54,7 +55,7 @@ func (c *connectionPool) addConnections(stepSize int) {
 		addr, protocol := configurationServer.GetServerDetails(c.serverName)
 		conn, err := net.Dial(protocol, addr)
 		if err != nil {
-			log.Fatalf("Could not make another connection for %s server\n%s", c.serverName, err.Error())
+			log.Fatalf("Could not make another connection for %s server. Have: %d\n%s", c.serverName, len(c.freeConnections), err.Error())
 		}
 		c.freeConnections = append(c.freeConnections, conn)
 	}

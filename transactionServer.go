@@ -5,8 +5,8 @@ import (
 	"log"
 	"net"
 	"net/textproto"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/RATDistributedSystems/utilities"
 	"github.com/RATDistributedSystems/utilities/ratdatabase"
@@ -16,15 +16,18 @@ import (
 
 var sessionGlobal *gocql.Session
 var transactionNumGlobal = 0
-var configurationServer = utilities.GetConfigurationFile("config.json")
-var auditPool = initializePool(150, 190, "audit")
-var serverName = configurationServer.GetValue("ts_name")
+var auditPool *connectionPool
+var configurationServer = utilities.Load()
+var serverName string
 
 //var quotePool = initializePool(100, "quote")
 
 func main() {
+	configurationServer.Pause()
 	uuid.Init()
+	serverName = uuid.NewV4().String()
 	initCassandra()
+	auditPool = initializePool(150, 190, "audit")
 	initRedis()
 	initTCPListener()
 
@@ -41,9 +44,9 @@ func GetQuoteServerConnection() net.Conn {
 
 func initCassandra() {
 	//connect to database
-	hostname := configurationServer.GetValue("cassandra_ip")
-	keyspace := configurationServer.GetValue("cassandra_keyspace")
-	protocol := configurationServer.GetValue("cassandra_proto")
+	hostname := configurationServer.GetValue("transdb_ip")
+	keyspace := configurationServer.GetValue("transdb_keyspace")
+	protocol := configurationServer.GetValue("transdb_proto")
 	ratdatabase.InitCassandraConnection(hostname, keyspace, protocol)
 	sessionGlobal = ratdatabase.CassandraConnection
 }
@@ -64,7 +67,7 @@ func initTCPListener() {
 		conn, err := l.Accept()
 		if err != nil {
 			log.Panic(err)
-		} else{
+		} else {
 			transactionNumGlobal++
 		}
 		// Handle connections in a new goroutine.
@@ -88,9 +91,8 @@ func executeCommand(command string, transactionNumGlobal int) {
 	result := strings.Split(command, ",")
 	log.Printf("Recieved Request: [%d]  %s", transactionNumGlobal, command)
 
-//strconv.FormatInt(int64(buyableStocks), 10)
+	//strconv.FormatInt(int64(buyableStocks), 10)
 	//strconv.Atoi
-
 
 	switch result[0] {
 	case "ADD":
@@ -120,7 +122,7 @@ func executeCommand(command string, transactionNumGlobal int) {
 		sell(result[1], result[2], result[3], x)
 	case "COMMIT_SELL":
 		var x, _ = strconv.Atoi(result[2])
-		logUserEvent(serverName, x, "COMMIT_SELL", result[1],"", "")
+		logUserEvent(serverName, x, "COMMIT_SELL", result[1], "", "")
 		commitSell(result[1], x)
 	case "CANCEL_SELL":
 		var x, _ = strconv.Atoi(result[2])
@@ -155,7 +157,7 @@ func executeCommand(command string, transactionNumGlobal int) {
 		logUserEvent(serverName, x, "DISPLAY_SUMMARY", result[1], "", "")
 		//displaySummary(result[1], x)
 	case "DUMPLOG":
-		
+
 		if len(result) == 4 {
 			var x, _ = strconv.Atoi(result[3])
 			logUserEvent(serverName, x, "DUMPLOG", result[1], "", "")

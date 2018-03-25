@@ -3,8 +3,10 @@ package main
 import (
 	//"bufio"
 	"fmt"
-	"time"
+	"log"
 	"strings"
+	"time"
+
 	"github.com/go-redis/redis"
 )
 
@@ -12,23 +14,22 @@ var redisConn *redis.Client
 
 const ttl = time.Second * 60
 
-
-func initRedis(){
-	addr := configurationServer.GetValue("cache_address")
-	port := configurationServer.GetValue("cache_port")
-	fmt.Println(addr + " " + port)
+func initRedis() {
+	addr, proto := configurationServer.GetServerDetails("redis")
 	redisConn = redis.NewClient(&redis.Options{
-		Network:  "tcp",
-		Addr:     addr+":"+port,
-		Password: "", 
+		Network:  proto,
+		Addr:     addr,
+		Password: "",
 		DB:       0, //using the default DB
 	})
 	_, err := redisConn.Ping().Result()
-	panic(err)
-	fmt.Println("Redis Connection Created")
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Redis Connection Created")
 }
 
-func cacheAdd(stockName string, stockInfo string){
+func cacheAdd(stockName string, stockInfo string) {
 	fmt.Printf("Adding %s to cache \n", stockName)
 	err := redisConn.Set(stockName, stockInfo, ttl).Err()
 	if err != nil {
@@ -36,17 +37,17 @@ func cacheAdd(stockName string, stockInfo string){
 	}
 }
 
-func cacheExists(stock string) (bool,int) {
+func cacheExists(stock string) (bool, int) {
 	fmt.Printf("checking if %s exists", stock)
 	val, err := redisConn.Get(stock).Result()
-	
+
 	//fmt.Println(val)
-	if err == redis.Nil{
+	if err == redis.Nil {
 		fmt.Printf("Cache %s DNE \n", stock)
 		return false, 0
-	}else if err != nil {
+	} else if err != nil {
 		panic(err)
-	}else {
+	} else {
 		messageArray := strings.Split(val, ",")
 		fmt.Printf("Cache %s Exists \n", stock)
 		return true, stringToCents(messageArray[0])
@@ -57,7 +58,7 @@ func cacheExists(stock string) (bool,int) {
 func cacheReturn(stock string) int {
 	fmt.Printf("Returning Cache Key %s \n", stock)
 	val, err := redisConn.Get(stock).Result()
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	//break comma delimitted data in to a message
