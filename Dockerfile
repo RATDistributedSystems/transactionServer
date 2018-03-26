@@ -1,6 +1,6 @@
 FROM scratch
 
-COPY transactionserver config.json /app/
+COPY transactionserver /app/
 WORKDIR "/app"
 EXPOSE 44441
 CMD ["./transactionserver"]
