@@ -1,6 +1,6 @@
 FROM scratch
 
-COPY transactionserver /app/
+COPY transactionServer /app/
 WORKDIR "/app"
 EXPOSE 44441
-CMD ["./transactionserver"]
+CMD ["./transactionServer"]
