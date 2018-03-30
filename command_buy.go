@@ -7,21 +7,46 @@ import (
 	"github.com/RATDistributedSystems/utilities/ratdatabase"
 )
 
-func buy(userId string, stock string, pendingCashString string, transactionNum int) {
+type commandBuy struct {
+	username string
+	amount   string
+	stock    string
+}
 
-	//logUserEvent("TS1", transactionNum, "BUY", userId, stock, pendingCashString)
+func (c commandBuy) process(transaction int) {
+	logUserEvent(serverName, transaction, "BUY", c.username, c.stock, c.amount)
+	buy(c.username, c.stock, c.amount, transaction)
+}
 
+type commandCancelBuy struct {
+	username string
+}
+
+func (c commandCancelBuy) process(transaction int) {
+	logUserEvent(serverName, transaction, "CANCEL_BUY", c.username, "", "")
+	cancelBuy(c.username, transaction)
+}
+
+type commandCommitBuy struct {
+	username string
+}
+
+func (c commandCommitBuy) process(transaction int) {
+	logUserEvent(serverName, transaction, "COMMIT_BUY", c.username, "", "")
+	commitBuy(c.username, transaction)
+}
+
+func buy(userID string, stock string, pendingCashString string, transactionNum int) {
 	pendingTransactionCash := stringToCents(pendingCashString)
-	//stockValue := quoteRequest(userId, stock, transactionNum)
-	stockValue := quoteCacheRequest(userId, stock, transactionNum)
+	stockValue := getQuote(userID, stock, transactionNum)
 	if stockValue <= 0 {
 		return
 	}
 	stockAmount := pendingTransactionCash / stockValue
-	currentBalance := ratdatabase.GetUserBalance(userId)
+	currentBalance := ratdatabase.GetUserBalance(userID)
 
 	if currentBalance < pendingTransactionCash {
-		log.Printf("[%d] Not enough money for %s to perform buy", transactionNum, userId)
+		log.Printf("[%d] Not enough money for %s to perform buy", transactionNum, userID)
 		return
 	}
 
@@ -32,49 +57,45 @@ func buy(userId string, stock string, pendingCashString string, transactionNum i
 
 	//if has enough cash subtract and set aside from db
 	newBalance := currentBalance - pendingTransactionCash
-	ratdatabase.UpdateUserBalance(userId, newBalance)
-	uuid := ratdatabase.InsertPendingBuyTransaction(userId, pendingTransactionCash, stock, stockValue)
-	log.Printf("[%d] User %s buy transaction for %d %s@%.2f pending", transactionNum, userId, stockAmount, stock, float64(stockValue))
+	ratdatabase.UpdateUserBalance(userID, newBalance)
+	uuid := ratdatabase.InsertPendingBuyTransaction(userID, pendingTransactionCash, stock, stockValue)
+	log.Printf("[%d] User %s buy transaction for %d %s@%.2f pending", transactionNum, userID, stockAmount, stock, float64(stockValue))
 
 	//waits for 62 seconds and checks if the transaction is still there. Remove if it is
 	time.Sleep(time.Second * 62)
 
 	// If Transaction isn't alive, do nothing
-	if !ratdatabase.BuyTransactionAlive(userId, uuid) {
+	if !ratdatabase.BuyTransactionAlive(userID, uuid) {
 		return
 	}
 
-	log.Printf("[%d] Cancelling '%s' request to buy %.2f of stock %s\n", transactionNum, userId, float64(pendingTransactionCash/100), stock)
-	ratdatabase.DeletePendingBuyTransaction(userId, uuid)
+	log.Printf("[%d] Cancelling '%s' request to buy %.2f of stock %s\n", transactionNum, userID, float64(pendingTransactionCash/100), stock)
+	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
 
 	// Returns users cash being held
-	newerBalance := ratdatabase.GetUserBalance(userId)
+	newerBalance := ratdatabase.GetUserBalance(userID)
 	newererBalance := pendingTransactionCash + newerBalance
-	ratdatabase.UpdateUserBalance(userId, newererBalance)
+	ratdatabase.UpdateUserBalance(userID, newererBalance)
 }
 
-func cancelBuy(userId string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "CANCEL_BUY", userId, "", "")
-
-	uuid, holdingCash, stockName, _, exists := ratdatabase.GetLastPendingBuyTransaction(userId)
+func cancelBuy(userID string, transactionNum int) {
+	uuid, holdingCash, stockName, _, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
 	if !exists {
 		log.Printf("[%d] Cannot cancel buy. No buys pending", transactionNum)
 		return
 	}
 
-	activeBalance := ratdatabase.GetUserBalance(userId)
+	activeBalance := ratdatabase.GetUserBalance(userID)
 	newBalance := activeBalance + holdingCash
-	ratdatabase.UpdateUserBalance(userId, newBalance)
+	ratdatabase.UpdateUserBalance(userID, newBalance)
 
 	//delete pending transaction
-	ratdatabase.DeletePendingBuyTransaction(userId, uuid)
+	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
 	log.Printf("[%d] Buy for stock:%s cancelled by user.", transactionNum, stockName)
 }
 
 func commitBuy(userID string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "COMMIT_BUY", userID, "", "")
-
 	uuid, holdingCash, stockName, stockPrice, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
 	if !exists {

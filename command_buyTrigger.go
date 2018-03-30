@@ -10,7 +10,6 @@ import (
 )
 
 func setBuyAmount(userID string, stock string, pendingCashString string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "SET_BUY_AMOUNT", userId, stock, pendingCashString)
 	buyAmount := stringToCents(pendingCashString)
 	userBalance := ratdatabase.GetUserBalance(userID)
 
@@ -28,7 +27,6 @@ func setBuyAmount(userID string, stock string, pendingCashString string, transac
 }
 
 func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "SET_BUY_TRIGGER", userId, stock, stockPriceTriggerString)
 	stockPriceTrigger := stringToCents(stockPriceTriggerString)
 	buySetAmountExists := ratdatabase.UpdateBuyTriggerPrice(userID, stock, stockPriceTrigger)
 
@@ -42,7 +40,6 @@ func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, 
 }
 
 func cancelBuyTrigger(userID string, stock string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "CANCEL_SET_BUY", userId, stock, "")
 	returnAmount := ratdatabase.CancelBuyTrigger(userID, stock)
 
 	if returnAmount == 0 {
@@ -71,7 +68,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 			return
 		}
 
-		currentStockPrice := quoteCacheRequest(userId, stock, transactionNum)
+		currentStockPrice := getQuote(userId, stock, transactionNum)
 
 		//execute the buy instantly if trigger condition is true
 		if currentStockPrice <= stockPriceTrigger {

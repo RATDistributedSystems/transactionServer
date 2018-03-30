@@ -9,11 +9,10 @@ import (
 )
 
 func setSellAmount(userID string, stock string, pendingCashString string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "SET_SELL_AMOUNT", userId, stock, pendingCashString)
 	stockAmountToSell := stringToCents(pendingCashString)
 	//check if user owns stock
 
-	uuid, stockAmountOwned, ownsStock := ratdatabase.GetStockAmountOwned(userID, stock)
+	_, stockAmountOwned, ownsStock := ratdatabase.GetStockAmountOwned(userID, stock)
 
 	if !ownsStock || stockAmountOwned == 0 {
 		msg := "[%d] Not enough of stock %s (%d) for SellSetAmount %d for %s"
@@ -21,7 +20,7 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 		return
 	}
 
-	currentStockPrice := quoteRequest(userID, stock, transactionNum)
+	currentStockPrice := getQuote(userID, stock, transactionNum)
 
 	if currentStockPrice > stockAmountToSell {
 		msg := "[%d] Current stock price (%d) is greater than amount wanting to be sold (%d)"
@@ -40,11 +39,11 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 	// Insert stock amount and return stock if it was already made
 	oldSellStockAmount := ratdatabase.InsertSetSellTrigger(userID, stock, sellStockAmount)
 	remainingStockAmount := stockAmountOwned + oldSellStockAmount - sellStockAmount
-	ratdatabase.UpdateUserStockByUUID(uuid, stock, remainingStockAmount)
+	//ratdatabase.UpdateUserStockByUUID(uuid, stock, remainingStockAmount)
+	ratdatabase.UpdateUserStockByUserAndStock(userID, stock, remainingStockAmount)
 }
 
 func setSellTrigger(userID string, stock string, stockSellPrice string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "SET_SELL_TRIGGER", userId, stock, stockSellPrice)
 	stockValueCents := stringToCents(stockSellPrice)
 	stockAmountSet := ratdatabase.UpdateSellTriggerPrice(userID, stock, stockValueCents)
 
@@ -58,16 +57,16 @@ func setSellTrigger(userID string, stock string, stockSellPrice string, transact
 }
 
 func cancelSellTrigger(userID string, stock string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "CANCEL_SET_SELL", userId, stock, "")
 	returnAmount := ratdatabase.CancelSellTrigger(userID, stock)
 
 	if returnAmount == 0 {
 		return
 	}
 
-	uuid, oldStockAmount, _ := ratdatabase.GetStockAmountOwned(userID, stock)
+	_, oldStockAmount, _ := ratdatabase.GetStockAmountOwned(userID, stock)
 	newStockAmount := oldStockAmount + returnAmount
-	ratdatabase.UpdateUserStockByUUID(uuid, stock, newStockAmount)
+	//ratdatabase.UpdateUserStockByUUID(uuid, stock, newStockAmount)
+	ratdatabase.UpdateUserStockByUserAndStock(userID, stock, newStockAmount)
 }
 
 func checkSellTrigger(userId string, stock string, stockSellPriceCents int, transactionNum int) {
@@ -87,7 +86,7 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int, tran
 		}
 
 		//retrieve current stock price
-		currentStockPrice := quoteRequest(userId, stock, transactionNum)
+		currentStockPrice := getQuote(userId, stock, transactionNum)
 
 		if currentStockPrice > stockSellPriceCents {
 

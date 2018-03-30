@@ -8,12 +8,39 @@ import (
 	"github.com/RATDistributedSystems/utilities/ratdatabase"
 )
 
-func sell(userId string, stock string, sellStockDollarsString string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "SELL", userId, stock, sellStockDollarsString)
+type commandSell struct {
+	username string
+	amount   string
+	stock    string
+}
 
+func (c commandSell) process(transaction int) {
+	logUserEvent(serverName, transaction, "SELL", c.username, c.stock, c.amount)
+	sell(c.username, c.stock, c.amount, transaction)
+}
+
+type commandCanceSell struct {
+	username string
+}
+
+func (c commandCanceSell) process(transaction int) {
+	logUserEvent(serverName, transaction, "CANCEL_SELL", c.username, "", "")
+	cancelSell(c.username, transaction)
+}
+
+type commandCommitSell struct {
+	username string
+}
+
+func (c commandCommitSell) process(transaction int) {
+	logUserEvent(serverName, transaction, "COMMIT_SELL", c.username, "", "")
+	commitSell(c.username, transaction)
+}
+
+func sell(userId string, stock string, sellStockDollarsString string, transactionNum int) {
 	sellStockValue := stringToCents(sellStockDollarsString)
 	//stockValue := quoteRequest(userId, stock, transactionNum)
-	stockValue := quoteCacheRequest(userId, stock, transactionNum)
+	stockValue := getQuote(userId, stock, transactionNum)
 
 	// unlikely but has happened before
 	if stockValue == 0 {
@@ -29,7 +56,7 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 
 	fmt.Printf("User Req Sell: %d / Stock Price: %d == %d\n", sellStockValue, stockValue, stockToSell)
 
-	userUUID, stockAmount, ownsStock := ratdatabase.GetStockAmountOwned(userId, stock)
+	_, stockAmount, ownsStock := ratdatabase.GetStockAmountOwned(userId, stock)
 	if !ownsStock || stockToSell > stockAmount {
 		log.Printf("[%d] %s doesn't have enough stock %s@%.2f to sell. Have: %d, Need: %d", transactionNum, userId, stock, float64(stockValue/100), stockAmount, stockToSell)
 		return
@@ -57,13 +84,12 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 	_, currentStockAmount, _ := ratdatabase.GetStockAmountOwned(userId, stock)
 
 	latestStockAmount := currentStockAmount + stockToSell
-	ratdatabase.UpdateUserStockByUUID(userUUID, stock, latestStockAmount)
+	//ratdatabase.UpdateUserStockByUUID(userUUID, stock, latestStockAmount)
+	ratdatabase.UpdateUserStockByUserAndStock(userId, stock, latestStockAmount)
 
 }
 
 func cancelSell(userID string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "CANCEL_SELL", userID, "", "")
-
 	transactionUUID, profits, stockName, stockPrice, exists := ratdatabase.GetLastPendingSellTransaction(userID)
 
 	if !exists {
@@ -88,8 +114,6 @@ func cancelSell(userID string, transactionNum int) {
 }
 
 func commitSell(userId string, transactionNum int) {
-	//logUserEvent("TS1", transactionNum, "COMMIT_SELL", userId, "", "")
-
 	transactionUUID, profits, stockName, stockPrice, exists := ratdatabase.GetLastPendingSellTransaction(userId)
 
 	if !exists {
