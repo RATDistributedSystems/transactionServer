@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"sync/atomic"
 
 	"github.com/RATDistributedSystems/utilities"
 	"github.com/RATDistributedSystems/utilities/ratdatabase"
@@ -22,18 +21,16 @@ var __transaction_number int64
 //var quotePool = initializePool(100, "quote")
 
 func main() {
-
 	uuid.Init()
 	configurationServer.Pause()
 	auditPool = initializePool(150, 190, "audit")
 	initCassandra()
 	initRedis()
 	initHTTPServer()
-
 }
 
 func initHTTPServer() {
-	addrWS, _ := configurationServer.GetListnerDetails("transaction")
+	addr, _ := configurationServer.GetListnerDetails("transaction")
 	// Enable HTTP handlers
 	router := httprouter.New()
 	router.GET("/", getURL)
@@ -46,8 +43,8 @@ func initHTTPServer() {
 	router.GET("/selltrigger", getURL)
 	router.GET("/summary", getURL)
 	router.POST("/result", requestHandler)
-	log.Printf("Serving on %s", addrWS)
-	log.Fatal(http.ListenAndServe(addrWS, router))
+	log.Printf("Serving on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, router))
 }
 
 func initCassandra() {
@@ -60,9 +57,7 @@ func initCassandra() {
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
-	r.ParseForm()
-	comm, err := getPostInformation(r.PostForm)
+	comm, transaction, err := getPostInformation(r)
 	if err != nil {
 		ErrorResponse(w, err.Error())
 		r.Body.Close()
@@ -72,7 +67,6 @@ func requestHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 
 	SuccessResponse(w)
 	r.Body.Close()
-	atomic.AddInt64(&__transaction_number, 1)
-	transaction := atomic.LoadInt64(&__transaction_number)
-	go comm.process(int(transaction))
+
+	go comm.process(transaction)
 }

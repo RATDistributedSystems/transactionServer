@@ -3,8 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 type commandValidator struct {
@@ -14,7 +17,9 @@ type commandValidator struct {
 	amountRequired bool
 }
 
-func getPostInformation(f url.Values) (c command, e error) {
+func getPostInformation(r *http.Request) (c command, transaction int, e error) {
+	r.ParseForm()
+	f := r.PostForm
 	commandType, _ := getParameter(f, "command")
 
 	switch commandType {
@@ -134,7 +139,21 @@ func getPostInformation(f url.Values) (c command, e error) {
 		e = errors.New("Invalid Command")
 	}
 
+	transaction = getTransactionNumber(f)
 	return
+}
+
+func getTransactionNumber(f url.Values) (transaction int) {
+	transactionString, et := getParameter(f, "transaction")
+	if et != nil || transactionString == "0" {
+		atomic.AddInt64(&__transaction_number, 1)
+		transaction = int(atomic.LoadInt64(&__transaction_number))
+		return
+	}
+
+	transaction, _ = strconv.Atoi(transactionString)
+	return
+
 }
 
 func getParameter(f url.Values, p string) (string, error) {
