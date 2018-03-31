@@ -47,11 +47,13 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 
 	if currentBalance < pendingTransactionCash {
 		log.Printf("[%d] Not enough money for %s to perform buy", transactionNum, userID)
+		logErrorEvent(serverName, transactionNum, "BUY", userID, stock, pendingCashString, "Not enough money to perform buy")
 		return
 	}
 
 	if stockAmount == 0 {
 		log.Printf("[%d] %s stock price(%d) higher than amount to purchase(%d)", transactionNum, stock, stockValue, pendingTransactionCash)
+		logErrorEvent(serverName, transactionNum, "BUY",userID,stock,pendingCashString, "Stock price higher than amount to purchase")
 		return
 	}
 
@@ -83,6 +85,7 @@ func cancelBuy(userID string, transactionNum int) {
 
 	if !exists {
 		log.Printf("[%d] Cannot cancel buy. No buys pending", transactionNum)
+		logErrorEvent(serverName, transactionNum, "CANCEL_BUY", userID, "", "", "Cannot cancel buy, no buys pending")
 		return
 	}
 
@@ -100,6 +103,7 @@ func commitBuy(userID string, transactionNum int) {
 
 	if !exists {
 		log.Printf("[%d] Cannot commit buy for %s. No buy pending", transactionNum, userID)
+		logErrorEvent(serverName, transactionNum, "COMMIT_BUY",userID, "", "", "Cannot commit buy. No buy pending")
 		return
 	}
 
