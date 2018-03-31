@@ -64,6 +64,7 @@ func cancelSellTrigger(userID string, stock string, transactionNum int) {
 	returnAmount := ratdatabase.CancelSellTrigger(userID, stock)
 
 	if returnAmount == 0 {
+		logErrorEvent(serverName, transactionNum, "CANCEL_SET_SELL", userID, stock,"", "No trigger to cancel")
 		return
 	}
 
