@@ -125,8 +125,9 @@ func getPostInformation(r *http.Request) (c command, transaction int, e error) {
 		}
 	case "DUMPLOG":
 		u, eu := getParameter(f, "username")
-		c = commandDumplog{u}
-		if eu != nil {
+		s, es := getParameter(f, "username")
+		c = commandDumplog{u, s}
+		if eu != nil || es != nil {
 			e = eu
 		}
 	case "DISPLAY_SUMMARY":
