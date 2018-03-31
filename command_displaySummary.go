@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"github.com/RATDistributedSystems/utilities/ratdatabase"
+)
+
 type commandDisplaySummary struct {
 	username string
 }
@@ -10,7 +15,19 @@ func (c commandDisplaySummary) process(transaction int) {
 }
 
 func displaySummary(userId string, transactionNum int) {
+	//get user cash
+	fmt.Println(userId + "summary:")
+	currentBalance := ratdatabase.GetUserBalance(userId)
+	fmt.Printf("Balance: %n", currentBalance)
+	//get list of user stocks and their quantity
+	fmt.Println("Stock summary: ")
+	rs := ratdatabase.GetStockAndAmountOwned(userId)
+	for _, r := range rs {
+		fmt.Println(r["stock"])
+		fmt.Println(r["stockamount"])
+	}
+	//get list of buy triggers
 
-	// return user summary of their stocks, cash, triggers, etc
-	// Not implemented yet
+	//get list of sell triggers
+
 }
