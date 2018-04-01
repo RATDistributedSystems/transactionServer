@@ -10,19 +10,21 @@ type commandDumplog struct {
 	filename string
 }
 
-func (c commandDumplog) process(transaction int) {
+func (c commandDumplog) process(transaction int) string {
 	logUserEvent(serverName, transaction, "DUMPLOG", c.username, "", "")
 	if c.username == "-1" {
 		dump(c.username, transaction)
-	} else {
-		dumpUser(c.username, c.filename, transaction)
+		return "" // only called from generator, not UI so who cares
 	}
 
+	return dumpUser(c.username, c.filename, transaction)
 }
 
-func dumpUser(userID string, filename string, transactionNum int) {
+func dumpUser(userID string, filename string, transactionNum int) string {
 	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG,%s,%s", userID, filename))
-	log.Printf("Dumping log data for %s\n", userID)
+	m := fmt.Sprintf("Dumping log data for %s\n", userID)
+	log.Printf(m)
+	return m
 }
 
 func dump(filename string, transactionNum int) {

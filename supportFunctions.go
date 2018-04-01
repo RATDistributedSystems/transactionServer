@@ -15,6 +15,10 @@ func getUsableCash(userId string) int {
 	return usableCash
 }
 
+func centsToString(i int) string {
+	return fmt.Sprintf("$%.2f", float64(i/100))
+}
+
 func stringToCents(x string) int {
 	result := strings.Split(x, ".")
 	dollars, err := strconv.Atoi(strings.TrimSpace(result[0]))

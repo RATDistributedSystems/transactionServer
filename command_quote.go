@@ -13,9 +13,9 @@ type commandQuote struct {
 	stock    string
 }
 
-func (c commandQuote) process(transaction int) {
+func (c commandQuote) process(transaction int) string {
 	logUserEvent(serverName, transaction, "QUOTE", c.username, c.stock, "")
-	log.Println(getQuote(c.username, c.stock, transaction))
+	return centsToString(getQuote(c.username, c.stock, transaction))
 }
 
 func getQuoteServerConnection() net.Conn {

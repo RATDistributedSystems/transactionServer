@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/RATDistributedSystems/utilities/ratdatabase"
 )
 
@@ -9,40 +8,42 @@ type commandDisplaySummary struct {
 	username string
 }
 
-func (c commandDisplaySummary) process(transaction int) {
+func (c commandDisplaySummary) process(transaction int) string {
 	logUserEvent(serverName, transaction, "DISPLAY_SUMMARY", c.username, "", "")
-	displaySummary(c.username, transaction)
+	return displaySummary(c.username, transaction)
 }
 
-func displaySummary(userId string, transactionNum int) {
-	
-	//get user cash
-	fmt.Println(userId + "summary:")
-	currentBalance := ratdatabase.GetUserBalance(userId)
-	fmt.Printf("Balance: %n", currentBalance)
+func displaySummary(userId string, transactionNum int) string {
+	account := userAcount{}
+	account.name = userId
+	account.balance = ratdatabase.GetUserBalance(userId)
 
 	//get list of user stocks and their quantity
-	fmt.Println("Stock summary: ")
 	rs := ratdatabase.GetStockAndAmountOwned(userId)
 	for _, r := range rs {
-		fmt.Println(r["stock"])
-		fmt.Println(r["stockamount"])
+		name := r["stock"].(string)
+		amount := r["stockamount"].(int)
+		stock := stockDetails{name, amount}
+		account.stocks = append(account.stocks, stock)
 	}
 
 	//get list of buy triggers
-	fmt.Println("Buy Triggers set: ")
 	bt := ratdatabase.GetBuyTriggers(userId)
 	for _, b := range bt {
-		fmt.Println(b["stock"])
-		fmt.Println(b["stockamount"])
+		name := b["stock"].(string)
+		amount := b["stockamount"].(int)
+		trigger := stockTriggerDetails{name, amount, 0}
+		account.buytriggers = append(account.buytriggers, trigger)
 	}
 
 	//get list of sell triggers
-	fmt.Println("Sell Triggers set: ")
 	st := ratdatabase.GetSellTriggers(userId)
-	for _, s := range st{
-		fmt.Println(s["stock"])
-		fmt.Println(s["stockamount"])
+	for _, s := range st {
+		name := s["stock"].(string)
+		amount := s["stockamount"].(int)
+		trigger := stockTriggerDetails{name, amount, 0}
+		account.selltriggers = append(account.selltriggers, trigger)
 	}
 
+	return account.String()
 }

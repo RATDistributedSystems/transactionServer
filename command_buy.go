@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -13,48 +14,50 @@ type commandBuy struct {
 	stock    string
 }
 
-func (c commandBuy) process(transaction int) {
+func (c commandBuy) process(transaction int) string {
 	logUserEvent(serverName, transaction, "BUY", c.username, c.stock, c.amount)
-	buy(c.username, c.stock, c.amount, transaction)
+	return buy(c.username, c.stock, c.amount, transaction)
 }
 
 type commandCancelBuy struct {
 	username string
 }
 
-func (c commandCancelBuy) process(transaction int) {
+func (c commandCancelBuy) process(transaction int) string {
 	logUserEvent(serverName, transaction, "CANCEL_BUY", c.username, "", "")
-	cancelBuy(c.username, transaction)
+	return cancelBuy(c.username, transaction)
 }
 
 type commandCommitBuy struct {
 	username string
 }
 
-func (c commandCommitBuy) process(transaction int) {
+func (c commandCommitBuy) process(transaction int) string {
 	logUserEvent(serverName, transaction, "COMMIT_BUY", c.username, "", "")
-	commitBuy(c.username, transaction)
+	return commitBuy(c.username, transaction)
 }
 
-func buy(userID string, stock string, pendingCashString string, transactionNum int) {
+func buy(userID string, stock string, pendingCashString string, transactionNum int) string {
 	pendingTransactionCash := stringToCents(pendingCashString)
 	stockValue := getQuote(userID, stock, transactionNum)
 	if stockValue <= 0 {
-		return
+		return "Stock is worthless. I forbid you from buying"
 	}
 	stockAmount := pendingTransactionCash / stockValue
 	currentBalance := ratdatabase.GetUserBalance(userID)
 
 	if currentBalance < pendingTransactionCash {
-		log.Printf("[%d] Not enough money for %s to perform buy", transactionNum, userID)
-		logErrorEvent(serverName, transactionNum, "BUY", userID, stock, pendingCashString, "Not enough money to perform buy")
-		return
+		m := fmt.Sprintf("[%d] Not enough money for %s to perform buy", transactionNum, userID)
+		log.Println(m)
+		logErrorEvent(serverName, transactionNum, "BUY", userID, stock, pendingCashString, m)
+		return m
 	}
 
 	if stockAmount == 0 {
-		log.Printf("[%d] %s stock price(%d) higher than amount to purchase(%d)", transactionNum, stock, stockValue, pendingTransactionCash)
-		logErrorEvent(serverName, transactionNum, "BUY",userID,stock,pendingCashString, "Stock price higher than amount to purchase")
-		return
+		m := fmt.Sprintf("[%d] %s stock price(%d) higher than amount to purchase(%d)", transactionNum, stock, stockValue, pendingTransactionCash)
+		log.Println(m)
+		logErrorEvent(serverName, transactionNum, "BUY", userID, stock, pendingCashString, m)
+		return m
 	}
 
 	//if has enough cash subtract and set aside from db
@@ -63,6 +66,11 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 	uuid := ratdatabase.InsertPendingBuyTransaction(userID, pendingTransactionCash, stock, stockValue)
 	log.Printf("[%d] User %s buy transaction for %d %s@%.2f pending", transactionNum, userID, stockAmount, stock, float64(stockValue))
 
+	go checkBuy(userID, uuid, transactionNum, pendingTransactionCash, stock)
+	return "Buy for %s has been placed pending cancel/commit from user"
+}
+
+func checkBuy(userID string, uuid string, transactionNum int, pendingTransactionCash int, stock string) {
 	//waits for 62 seconds and checks if the transaction is still there. Remove if it is
 	time.Sleep(time.Second * 62)
 
@@ -80,13 +88,14 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 	ratdatabase.UpdateUserBalance(userID, newererBalance)
 }
 
-func cancelBuy(userID string, transactionNum int) {
+func cancelBuy(userID string, transactionNum int) string {
 	uuid, holdingCash, stockName, _, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
 	if !exists {
-		log.Printf("[%d] Cannot cancel buy. No buys pending", transactionNum)
-		logErrorEvent(serverName, transactionNum, "CANCEL_BUY", userID, "", "", "Cannot cancel buy, no buys pending")
-		return
+		m := fmt.Sprintf("[%d] Cannot cancel buy. No buys pending", transactionNum)
+		log.Println(m)
+		logErrorEvent(serverName, transactionNum, "CANCEL_BUY", userID, "", "", m)
+		return m
 	}
 
 	activeBalance := ratdatabase.GetUserBalance(userID)
@@ -95,16 +104,19 @@ func cancelBuy(userID string, transactionNum int) {
 
 	//delete pending transaction
 	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
-	log.Printf("[%d] Buy for stock:%s cancelled by user.", transactionNum, stockName)
+	m := fmt.Sprintf("[%d] Buy for stock:%s cancelled by user.", transactionNum, stockName)
+	log.Printf(m)
+	return m
 }
 
-func commitBuy(userID string, transactionNum int) {
+func commitBuy(userID string, transactionNum int) string {
 	uuid, holdingCash, stockName, stockPrice, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
 	if !exists {
-		log.Printf("[%d] Cannot commit buy for %s. No buy pending", transactionNum, userID)
-		logErrorEvent(serverName, transactionNum, "COMMIT_BUY",userID, "", "", "Cannot commit buy. No buy pending")
-		return
+		m := fmt.Sprintf("[%d] Cannot commit buy for %s. No buy pending", transactionNum, userID)
+		log.Println(m)
+		logErrorEvent(serverName, transactionNum, "COMMIT_BUY", userID, "", "", "Cannot commit buy. No buy pending")
+		return m
 	}
 
 	stockBought := holdingCash / stockPrice
@@ -118,7 +130,8 @@ func commitBuy(userID string, transactionNum int) {
 	} else {
 		ratdatabase.AddStockToPortfolio(userID, stockName, stockBought)
 	}
-	log.Printf("[%d] User %s now has %d more of stock %s", transactionNum, userID, stockBought, stockName)
+	m := fmt.Sprintf("[%d] User %s now has %d more of stock %s", transactionNum, userID, stockBought, stockName)
+	log.Println(m)
 
 	if surplusCash != 0 {
 		currentBalance := ratdatabase.GetUserBalance(userID)
@@ -127,5 +140,5 @@ func commitBuy(userID string, transactionNum int) {
 	}
 
 	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
-
+	return m
 }

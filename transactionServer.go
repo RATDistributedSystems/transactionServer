@@ -57,14 +57,14 @@ func initCassandra() {
 func requestHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	comm, transaction, err := getPostInformation(r)
 	if err != nil {
-		ErrorResponse(w, err.Error())
+		errorResponse(w, err.Error())
 		r.Body.Close()
 		log.Println(err.Error())
 		return
 	}
 
-	SuccessResponse(w)
+	resp := comm.process(transaction)
+	response(w, resp)
 	r.Body.Close()
 
-	go comm.process(transaction)
 }

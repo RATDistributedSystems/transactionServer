@@ -1,69 +1,82 @@
 package main
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
 type command interface {
-	process(int)
+	process(int) string
 }
 
-type commandSetBuyAmount struct {
-	username string
-	amount   string
-	stock    string
+type stockDetails struct {
+	name   string
+	amount int
 }
 
-func (c commandSetBuyAmount) process(transaction int) {
-	logUserEvent(serverName, transaction, "SET_BUY_AMOUNT", c.username, c.stock, c.amount)
-	setBuyAmount(c.username, c.stock, c.amount, transaction)
+type stockTriggerDetails struct {
+	name   string
+	amount int
+	price  int
 }
 
-type commandSetBuyTrigger struct {
-	username string
-	amount   string
-	stock    string
+type userAcount struct {
+	name         string
+	balance      int
+	stocks       []stockDetails
+	buytriggers  []stockTriggerDetails
+	selltriggers []stockTriggerDetails
 }
 
-func (c commandSetBuyTrigger) process(transaction int) {
-	logUserEvent(serverName, transaction, "SET_BUY_TRIGGER", c.username, c.stock, c.amount)
-	setBuyTrigger(c.username, c.stock, c.amount, transaction)
+func createTableHead(element ...string) string {
+	middle := strings.Join(element, "</th><th>")
+	return fmt.Sprintf("<thead><tr><th>%s</th></tr></thead>", middle)
 }
 
-type commandCancelSetBuy struct {
-	username string
-	stock    string
+func createTableBody(element ...string) string {
+	middle := strings.Join(element, "</td><td>")
+	return fmt.Sprintf("<tbody><tr><td>%s</td></tr></tbody>", middle)
 }
 
-func (c commandCancelSetBuy) process(transaction int) {
-	logUserEvent(serverName, transaction, "CANCEL_SET_BUY", c.username, c.stock, "")
-	cancelBuyTrigger(c.username, c.stock, transaction)
+func createTable(title string, head string, rows ...string) string {
+	tableTemp := "<div class=\"container-fluid\"><h2>%s</h2><table class=\"table table-striped\">%s%s</table></div><br>"
+
+	body := strings.Join(rows, " ")
+	return fmt.Sprintf(tableTemp, title, head, body)
 }
 
-type commandSetSellAmount struct {
-	username string
-	amount   string
-	stock    string
-}
+func (u userAcount) String() string {
+	// Create table for user account details
+	userHead := createTableHead("User", "Balance")
+	userBody := createTableBody(u.name, centsToString(u.balance))
+	userTable := createTable("User Account Summary", userHead, userBody)
 
-func (c commandSetSellAmount) process(transaction int) {
-	logUserEvent(serverName, transaction, "SET_SELL_AMOUNT", c.username, c.stock, c.amount)
-	setSellAmount(c.username, c.stock, c.amount, transaction)
-}
+	// table for stock owned details
+	stockHead := createTableHead("Stock", "Amount")
+	var stockBodies []string
+	for _, stock := range u.stocks {
+		row := createTableBody(stock.name, strconv.Itoa(stock.amount))
+		stockBodies = append(stockBodies, row)
+	}
+	stockTable := createTable("Stocks Owned", stockHead, stockBodies...)
 
-type commandSetSellTrigger struct {
-	username string
-	amount   string
-	stock    string
-}
+	// table for triggers
+	buytriggerHead := createTableHead("Stock", "Trigger Amount", "Trigger Price")
+	var buytriggerBodies []string
+	for _, trigger := range u.buytriggers {
+		row := createTableBody(trigger.name, strconv.Itoa(trigger.amount), centsToString(trigger.price))
+		buytriggerBodies = append(buytriggerBodies, row)
+	}
+	buytriggerTable := createTable("Buy Triggers", buytriggerHead, buytriggerBodies...)
 
-func (c commandSetSellTrigger) process(transaction int) {
-	logUserEvent(serverName, transaction, "SET_SELL_TRIGGER", c.username, c.stock, c.amount)
-	setSellTrigger(c.username, c.stock, c.amount, transaction)
-}
+	selltriggerHead := createTableHead("Stock", "Trigger Amount", "Trigger Price")
+	var selltriggerBodies []string
+	for _, trigger := range u.buytriggers {
+		row := createTableBody(trigger.name, strconv.Itoa(trigger.amount), centsToString(trigger.price))
+		selltriggerBodies = append(selltriggerBodies, row)
+	}
+	sellriggerTable := createTable("Sell Triggers", selltriggerHead, selltriggerBodies...)
 
-type commandCancelSetSell struct {
-	username string
-	stock    string
-}
-
-func (c commandCancelSetSell) process(transaction int) {
-	logUserEvent(serverName, transaction, "CANCEL_SET_SELL", c.username, c.stock, "")
-	cancelSellTrigger(c.username, c.stock, transaction)
+	return userTable + stockTable + buytriggerTable + sellriggerTable
 }

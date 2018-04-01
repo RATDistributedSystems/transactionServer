@@ -44,14 +44,13 @@ func addBodyToHTML(htmlTags string) string {
 }
 
 // SuccessResponse returns the successful response
-func SuccessResponse(w http.ResponseWriter) {
+func response(w http.ResponseWriter, s string) {
 	w.Header().Set("Content-Type", "text/html")
-	html := addBodyToHTML(fmt.Sprintf("<b>%s</b>", "Command Successful"))
+	html := addBodyToHTML(fmt.Sprintf("<b>%s</b>", s))
 	w.Write([]byte(html))
 }
 
-// ErrorResponse creates a page which tells you what your error is
-func ErrorResponse(w http.ResponseWriter, ErrorString string) {
+func errorResponse(w http.ResponseWriter, ErrorString string) {
 	w.Header().Set("Content-Type", "text/html")
 	html := addBodyToHTML(fmt.Sprintf("<b>%s</b>", ErrorString))
 	w.Write([]byte(html))
