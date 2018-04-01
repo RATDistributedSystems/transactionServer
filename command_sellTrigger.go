@@ -53,7 +53,7 @@ func setSellTrigger(userID string, stock string, stockSellPrice string, transact
 		return
 	}
 
-	checkSellTrigger(userID, stock, stockValueCents, transactionNum)
+	//checkSellTrigger(userID, stock, stockValueCents, transactionNum)
 }
 
 func cancelSellTrigger(userID string, stock string, transactionNum int) {
@@ -69,6 +69,7 @@ func cancelSellTrigger(userID string, stock string, transactionNum int) {
 	ratdatabase.UpdateUserStockByUserAndStock(userID, stock, newStockAmount)
 }
 
+/*
 func checkSellTrigger(userId string, stock string, stockSellPriceCents int, transactionNum int) {
 
 	operation := false
@@ -116,3 +117,4 @@ func checkSellTrigger(userId string, stock string, stockSellPriceCents int, tran
 	}
 
 }
+*/

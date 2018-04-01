@@ -36,7 +36,7 @@ func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, 
 		return
 	}
 
-	checkBuyTrigger(userID, stock, stockPriceTrigger, transactionNum)
+	//checkBuyTrigger(userID, stock, stockPriceTrigger, transactionNum)
 }
 
 func cancelBuyTrigger(userID string, stock string, transactionNum int) {
@@ -51,7 +51,7 @@ func cancelBuyTrigger(userID string, stock string, transactionNum int) {
 	ratdatabase.UpdateUserBalance(userID, newBalance)
 
 }
-
+/*
 func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transactionNum int) {
 
 	operation := true
@@ -193,3 +193,5 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 		}
 	}
 }
+
+*/
