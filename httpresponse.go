@@ -18,7 +18,6 @@ var (
 
 func getFileAsBytes(p string) []byte {
 	if f, exists := fileCache.Load(p); exists {
-		fmt.Println("Got cached value")
 		return f.([]byte)
 	}
 
