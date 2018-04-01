@@ -17,6 +17,7 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 	if !ownsStock || stockAmountOwned == 0 {
 		msg := "[%d] Not enough of stock %s (%d) for SellSetAmount %d for %s"
 		log.Printf(msg, transactionNum, stock, stockAmountOwned, stockAmountToSell, userID)
+		logErrorEvent(serverName, transactionNum, "SET_SELL_AMOUNT", userID, stock, pendingCashString, "Not enough stock for SET_SELL_AMOUNT")
 		return
 	}
 
@@ -25,6 +26,7 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 	if currentStockPrice > stockAmountToSell {
 		msg := "[%d] Current stock price (%d) is greater than amount wanting to be sold (%d)"
 		fmt.Printf(msg, transactionNum, currentStockPrice, stockAmountToSell)
+		logErrorEvent(serverName, transactionNum, "SET_SELL_AMOUNT", userID, stock, pendingCashString, "Current stock price is greater than amount wanting to be sold.")
 		return
 	}
 
@@ -33,6 +35,7 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 	if stockAmountOwned < sellStockAmount {
 		msg := "[%d] User %s does not own enough %s stock (%d) to sell %d amount"
 		fmt.Printf(msg, transactionNum, userID, stock, stockAmountOwned, sellStockAmount)
+		logErrorEvent(serverName, transactionNum, "SET_SELL_AMOUNT", userID, stock, pendingCashString, "User does not own enough stock to sell amount.")
 		return
 	}
 
@@ -50,6 +53,7 @@ func setSellTrigger(userID string, stock string, stockSellPrice string, transact
 	if !stockAmountSet {
 		msg := "[%d] User %s hasn't set stock amount for stock %s"
 		log.Printf(msg, transactionNum, userID, stock)
+		logErrorEvent(serverName, transactionNum, "SET_SELL_TRIGGER", userID, stock, stockSellPrice, "No stock amount set.")
 		return
 	}
 
@@ -60,6 +64,7 @@ func cancelSellTrigger(userID string, stock string, transactionNum int) {
 	returnAmount := ratdatabase.CancelSellTrigger(userID, stock)
 
 	if returnAmount == 0 {
+		logErrorEvent(serverName, transactionNum, "CANCEL_SET_SELL", userID, stock,"", "No trigger to cancel")
 		return
 	}
 

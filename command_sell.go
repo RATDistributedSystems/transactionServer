@@ -45,6 +45,7 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 	// unlikely but has happened before
 	if stockValue == 0 {
 		log.Printf("[%d] Stock '%s' price is 0. Cannot buy", transactionNum, stock)
+		logErrorEvent(serverName, transactionNum, "SELL", userId, stock, sellStockDollarsString, "Stock price is 0. Cannot buy")
 		return
 	}
 
@@ -59,6 +60,7 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 	_, stockAmount, ownsStock := ratdatabase.GetStockAmountOwned(userId, stock)
 	if !ownsStock || stockToSell > stockAmount {
 		log.Printf("[%d] %s doesn't have enough stock %s@%.2f to sell. Have: %d, Need: %d", transactionNum, userId, stock, float64(stockValue/100), stockAmount, stockToSell)
+		logErrorEvent(serverName, transactionNum, "SELL", userId, stock, sellStockDollarsString, "Not enough stock to sell.")
 		return
 	}
 
@@ -94,6 +96,7 @@ func cancelSell(userID string, transactionNum int) {
 
 	if !exists {
 		log.Printf("[%d] No pending sell transaction to cancel", transactionNum)
+		logErrorEvent(serverName, transactionNum, "CANCEL_SELL", userID, "", "", "No pending sell transaction to cancel.")
 		return
 	}
 
@@ -118,6 +121,7 @@ func commitSell(userId string, transactionNum int) {
 
 	if !exists {
 		log.Printf("[%d] No pending sell transaction to commit", transactionNum)
+		logErrorEvent(serverName, transactionNum, "COMMIT_SELL", userId, "", "", "No pending sell transaction to commit.")
 		return
 	}
 

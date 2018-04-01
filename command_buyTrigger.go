@@ -17,6 +17,7 @@ func setBuyAmount(userID string, stock string, pendingCashString string, transac
 	if userBalance < buyAmount {
 		msg := "[%d] Not enough cash (%.2f) for buy amount trigger (%.2f) for %s"
 		log.Printf(msg, transactionNum, float64(userBalance)/100, float64(buyAmount)/100, userID)
+		logErrorEvent(serverName, transactionNum, "SET_BUY_AMOUNT", userID,stock,pendingCashString, "Not enough cash for buy ammount trigger.")
 		return
 	}
 
@@ -33,6 +34,7 @@ func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, 
 	if !buySetAmountExists {
 		msg := "[%d] Cannot set buy trigger price (%s). %s hasn't called BuySetAmount for stock %s"
 		log.Printf(msg, transactionNum, stockPriceTriggerString, userID, stock)
+		logErrorEvent(serverName, transactionNum, "SET_BUY_TRIGGER", userID, stock, stockPriceTriggerString, "Cannot set buy trigger price, as SET_BUY_AMOUNT has not been called.")
 		return
 	}
 
@@ -43,6 +45,7 @@ func cancelBuyTrigger(userID string, stock string, transactionNum int) {
 	returnAmount := ratdatabase.CancelBuyTrigger(userID, stock)
 
 	if returnAmount == 0 {
+		logErrorEvent(serverName, transactionNum, "CANCEL_SET_BUY", userID, stock,"", "No trigger to cancel")
 		return
 	}
 

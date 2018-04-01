@@ -18,8 +18,6 @@ var auditPool *connectionPool
 
 var __transaction_number int64
 
-//var quotePool = initializePool(100, "quote")
-
 func main() {
 	uuid.Init()
 	configurationServer.Pause()

@@ -7,23 +7,25 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 var (
-	fileCache = make(map[string][]byte)
+	fileCache sync.Map
 )
 
 func getFileAsBytes(p string) []byte {
-	if f, exists := fileCache[p]; exists {
-		return f
+	if f, exists := fileCache.Load(p); exists {
+		fmt.Println("Got cached value")
+		return f.([]byte)
 	}
 
 	f := fmt.Sprintf("%s/index.html", p)
 	fp := filepath.Join(configurationServer.GetValue("frontend_location"), f)
 	fileBytes, _ := ioutil.ReadFile(fp)
-	fileCache[p] = fileBytes
+	fileCache.Store(p, fileBytes)
 	return fileBytes
 }
 
