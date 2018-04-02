@@ -64,7 +64,7 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 	}
 
 	if currentStockPrice <= 0 {
-		return
+		return "NO"
 	}
 	sellStockAmount := stockAmountToSell / currentStockPrice
 
