@@ -44,7 +44,7 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 
 	// unlikely but has happened before
 	if stockValue == 0 {
-		m := fmt.Sprintf("[%d] Stock '%s' price is 0. Cannot buy", transactionNum, stock)
+		m := fmt.Sprintf("[%d] Stock %s price is 0. Cannot buy", transactionNum, stock)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SELL", userId, stock, sellStockDollarsString, m)
 		return m
@@ -83,7 +83,7 @@ func checkSell(userID string, transactionUUID string, stock string, stockToSell 
 	if !ratdatabase.SellTransactionAlive(userID, transactionUUID) {
 		return
 	}
-	log.Printf("[%d] Cancelling '%s' request to sell %.2f of stock %s\n", transactionNum, userID, float64(sellStockValue/100), stock)
+	log.Printf("[%d] Cancelling %s request to sell %.2f of stock %s\n", transactionNum, userID, float64(sellStockValue/100), stock)
 
 	// delete pending transaction
 	ratdatabase.DeletePendingSellTransaction(userID, transactionUUID)
