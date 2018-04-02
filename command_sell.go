@@ -60,7 +60,7 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 
 	_, stockAmount, ownsStock := ratdatabase.GetStockAmountOwned(userId, stock)
 	if !ownsStock || stockToSell > stockAmount {
-		m := fmt.Sprintf("[%d] %s doesn't have enough stock %s@%.2f to sell. Have: %d, Need: %d", transactionNum, userId, stock, float64(stockValue/100), stockAmount, stockToSell)
+		m := fmt.Sprintf("[%d] %s does not have enough stock %s@%.2f to sell. Have: %d, Need: %d", transactionNum, userId, stock, float64(stockValue/100), stockAmount, stockToSell)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SELL", userId, stock, sellStockDollarsString, m)
 		return m
