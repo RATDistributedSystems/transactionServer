@@ -86,7 +86,7 @@ func setSellTrigger(userID string, stock string, stockSellPrice string, transact
 	stockAmountSet := ratdatabase.UpdateSellTriggerPrice(userID, stock, stockValueCents)
 
 	if !stockAmountSet {
-		msg := "[%d] User %s hasn't set stock amount for stock %s"
+		msg := "[%d] User %s has not set stock amount for stock %s"
 		m := fmt.Sprintf(msg, transactionNum, userID, stock)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SET_SELL_TRIGGER", userID, stock, stockSellPrice, m)

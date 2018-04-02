@@ -66,7 +66,7 @@ func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, 
 	buySetAmountExists := ratdatabase.UpdateBuyTriggerPrice(userID, stock, stockPriceTrigger)
 
 	if !buySetAmountExists {
-		msg := "[%d] Cannot set buy trigger price (%s). %s hasn't called BuySetAmount for stock %s"
+		msg := "[%d] Cannot set buy trigger price (%s). %s has not called BuySetAmount for stock %s"
 		m := fmt.Sprintf(msg, transactionNum, stockPriceTriggerString, userID, stock)
 		log.Printf(m)
 		logErrorEvent(serverName, transactionNum, "SET_BUY_TRIGGER", userID, stock, stockPriceTriggerString, m)
