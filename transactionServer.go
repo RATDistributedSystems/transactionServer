@@ -20,7 +20,7 @@ var __transaction_number int64
 
 func main() {
 	uuid.Init()
-	configurationServer.Pause()
+	//configurationServer.Pause()
 	auditPool = initializePool(150, 190, "audit")
 	initCassandra()
 	initRedis()
@@ -63,10 +63,16 @@ func requestHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 		return
 	}
 
-	resp := comm.process(transaction)
-	response(w, resp)
+	mode := configurationServer.GetValue("environment_location")
+	switch mode {
+	case "TEST":
+		resp := comm.process(transaction)
+		response(w, resp)
+	case "PROD":
+		go comm.process(transaction)
+	default:
+		log.Printf("Invalid Mode [%s]", mode)
+	}
+
 	r.Body.Close()
-
 }
-
-
