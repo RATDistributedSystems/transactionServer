@@ -143,7 +143,7 @@ func checkBuyTrigger(userId string, stock string, stockPriceTrigger int, transac
 					return
 				}
 				//insert new stock record
-				if err := sessionGlobal.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE userid=" + userId + "").Exec(); err != nil {
+				if err := sessionGlobal.Query("UPDATE userstocks SET stockamount=" + buyableStocksString + " WHERE userid='" + userId + "' AND stock='" + stock + "'").Exec(); err != nil {
 					panic(fmt.Sprintf("problem creating session", err))
 				}
 				//check users available cash
