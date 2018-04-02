@@ -33,11 +33,11 @@ func logAccountTransactionEvent(server string, transactionNum int, action string
 }
 
 func logErrorEvent(server string, transactionNum int, command string, userid string, stockSymbol string, funds string, err string) {
-	msg := fmt.Sprintf("User,%s,%s,%d,%s,%s,%s,%s,%s", utilities.GetTimestamp(), server, transactionNum, command, userid, stockSymbol, funds, err)
+	msg := fmt.Sprintf("Error,%s,%s,%d,%s,%s,%s,%s,%s", utilities.GetTimestamp(), server, transactionNum, command, userid, stockSymbol, funds, err)
 	sendMsgToAuditServer(msg)
 }
 
 func logDebugEvent(server string, transactionNum int, command string, userid string, stockSymbol string, funds string, debug string) {
-	msg := fmt.Sprintf("User,%s,%s,%d,%s,%s,%s,%s,%s", utilities.GetTimestamp(), server, transactionNum, command, userid, stockSymbol, funds, debug)
+	msg := fmt.Sprintf("Debug,%s,%s,%d,%s,%s,%s,%s,%s", utilities.GetTimestamp(), server, transactionNum, command, userid, stockSymbol, funds, debug)
 	sendMsgToAuditServer(msg)
 }
