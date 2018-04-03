@@ -47,7 +47,10 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 		return "Stock is worthless. I forbid you from buying"
 	}
 	stockAmount := pendingTransactionCash / stockValue
+	start1 := time.Now()
 	currentBalance := ratdatabase.GetUserBalance(userID)
+	elapsed1 := time.Since(start1)
+	appendToText("buyCQL.txt", elapsed1.String())
 
 	if currentBalance < pendingTransactionCash {
 		m := fmt.Sprintf("[%d] Not enough money for %s to perform buy", transactionNum, userID)
@@ -69,8 +72,13 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 
 	//if has enough cash subtract and set aside from db
 	newBalance := currentBalance - pendingTransactionCash
+
+	start1 = time.Now()
 	ratdatabase.UpdateUserBalance(userID, newBalance)
 	uuid := ratdatabase.InsertPendingBuyTransaction(userID, pendingTransactionCash, stock, stockValue)
+	elapsed1 = time.Since(start1)
+	appendToText("buyCQL.txt", elapsed1.String())
+
 	log.Printf("[%d] User %s buy transaction for %d %s@%.2f pending", transactionNum, userID, stockAmount, stock, float64(stockValue))
 
 	elapsed := time.Since(start)
@@ -100,7 +108,10 @@ func checkBuy(userID string, uuid string, transactionNum int, pendingTransaction
 
 func cancelBuy(userID string, transactionNum int) string {
 	start := time.Now()
+	start1 := time.Now()
 	uuid, holdingCash, stockName, _, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
+	elapsed1 := time.Since(start1)
+	appendToText("cancelBuyCQL.txt", elapsed1.String())
 
 	if !exists {
 		m := fmt.Sprintf("[%d] Cannot cancel buy. No buys pending", transactionNum)
@@ -111,12 +122,16 @@ func cancelBuy(userID string, transactionNum int) string {
 		return m
 	}
 
+	start1 = time.Now()
 	activeBalance := ratdatabase.GetUserBalance(userID)
 	newBalance := activeBalance + holdingCash
 	ratdatabase.UpdateUserBalance(userID, newBalance)
 
+
 	//delete pending transaction
 	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
+	elapsed1 = time.Since(start1)
+	appendToText("cancelBuyCQL.txt", elapsed1.String())
 	m := fmt.Sprintf("[%d] Buy for stock:%s cancelled by user.", transactionNum, stockName)
 	log.Printf(m)
 	elapsed := time.Since(start)
