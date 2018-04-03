@@ -1,8 +1,7 @@
 FROM cassandra:latest
 
 RUN mkdir -p /scripts
-COPY truncate.cql /scripts/ 
-COPY cassandra.yaml /etc/cassandra/
+COPY truncate.cql start.sh cassandra.yaml /scripts/ 
 WORKDIR "/"
 EXPOSE 9042
-CMD [ "/docker-entrypoint.sh" ]
+CMD [ "start.sh" ]
