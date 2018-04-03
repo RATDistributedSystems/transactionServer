@@ -75,6 +75,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 func initBenchFiles(){
 	fmt.Println("Creating Benchmark Files")
 	createFile("add.txt")
+	createFile("addCQL.txt")
 	createFile("buy.txt")
 	createFile("sell.txt")
 	createFile("cancelBuy.txt")
