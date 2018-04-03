@@ -41,6 +41,7 @@ func (c commandCancelSetBuy) process(transaction int) string {
 }
 
 func setBuyAmount(userID string, stock string, pendingCashString string, transactionNum int) string {
+	start := time.Now()
 	buyAmount := stringToCents(pendingCashString)
 	userBalance := ratdatabase.GetUserBalance(userID)
 
@@ -50,6 +51,8 @@ func setBuyAmount(userID string, stock string, pendingCashString string, transac
 		m := fmt.Sprintf(msg, transactionNum, float64(userBalance)/100, float64(buyAmount)/100, userID)
 		log.Printf(m)
 		logErrorEvent(serverName, transactionNum, "SET_BUY_AMOUNT", userID, stock, pendingCashString, m)
+		elapsed := time.Since(start)
+		appendToText("setBuyAmount.txt", elapsed.String())
 		return m
 	}
 
@@ -58,10 +61,14 @@ func setBuyAmount(userID string, stock string, pendingCashString string, transac
 	newBalance := userBalance + oldTriggerAmount - buyAmount
 	ratdatabase.UpdateUserBalance(userID, newBalance)
 
+	elapsed := time.Since(start)
+	appendToText("setBuyAmount.txt", elapsed.String())
+
 	return fmt.Sprintf("Sucessfully set SET_BUY_AMOUNT (%s) for %s", pendingCashString, stock)
 }
 
 func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, transactionNum int) string {
+	start := time.Now()
 	stockPriceTrigger := stringToCents(stockPriceTriggerString)
 	buySetAmountExists := ratdatabase.UpdateBuyTriggerPrice(userID, stock, stockPriceTrigger)
 
@@ -70,24 +77,33 @@ func setBuyTrigger(userID string, stock string, stockPriceTriggerString string, 
 		m := fmt.Sprintf(msg, transactionNum, stockPriceTriggerString, userID, stock)
 		log.Printf(m)
 		logErrorEvent(serverName, transactionNum, "SET_BUY_TRIGGER", userID, stock, stockPriceTriggerString, m)
+		elapsed := time.Since(start)
+		appendToText("setBuyTrigger.txt", elapsed.String())
 		return m
 	}
 	checkBuyTrigger(userID, stock, stockPriceTrigger, transactionNum)
+	elapsed := time.Since(start)
+	appendToText("setBuyTrigger.txt", elapsed.String())
 	return fmt.Sprintf("Successfully set SET_BUY_TRIGGER (%s) for %s", stockPriceTriggerString, stock)
 }
 
 func cancelBuyTrigger(userID string, stock string, transactionNum int) string {
+	start := time.Now()
 	returnAmount := ratdatabase.CancelBuyTrigger(userID, stock)
 
 	if returnAmount == 0 {
 		m := fmt.Sprintf("No trigger for %s to cancel", stock)
 		logErrorEvent(serverName, transactionNum, "CANCEL_SET_BUY", userID, stock, "", m)
+		elapsed := time.Since(start)
+		appendToText("cancelBuyTrigger.txt", elapsed.String())
 		return m
 	}
 
 	userBalance := ratdatabase.GetUserBalance(userID)
 	newBalance := userBalance + returnAmount
 	ratdatabase.UpdateUserBalance(userID, newBalance)
+	elapsed := time.Since(start)
+	appendToText("cancelBuyTrigger.txt", elapsed.String())
 	return fmt.Sprintf("Cancelled Buy Trigger for %s", stock)
 }
 

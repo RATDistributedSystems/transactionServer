@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/RATDistributedSystems/utilities/ratdatabase"
+	"time"
 )
 
 type commandDisplaySummary struct {
@@ -14,6 +15,7 @@ func (c commandDisplaySummary) process(transaction int) string {
 }
 
 func displaySummary(userId string, transactionNum int) string {
+	start := time.Now()
 	account := userAcount{}
 	account.name = userId
 	account.balance = ratdatabase.GetUserBalance(userId)
@@ -44,6 +46,9 @@ func displaySummary(userId string, transactionNum int) string {
 		trigger := stockTriggerDetails{name, amount, 0}
 		account.selltriggers = append(account.selltriggers, trigger)
 	}
+
+	elapsed := time.Since(start)
+	appendToText("displaySummary.txt", elapsed.String())
 
 	return account.String()
 }

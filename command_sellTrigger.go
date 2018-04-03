@@ -40,6 +40,7 @@ func (c commandCancelSetSell) process(transaction int) string {
 }
 
 func setSellAmount(userID string, stock string, pendingCashString string, transactionNum int) string {
+	start := time.Now()
 	stockAmountToSell := stringToCents(pendingCashString)
 	//check if user owns stock
 
@@ -50,6 +51,8 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 		m := fmt.Sprintf(msg, transactionNum, stock, stockAmountOwned, stockAmountToSell, userID)
 		log.Printf(m)
 		logErrorEvent(serverName, transactionNum, "SET_SELL_AMOUNT", userID, stock, pendingCashString, m)
+		elapsed := time.Since(start)
+		appendToText("setSellAmount.txt", elapsed.String())
 		return m
 	}
 
@@ -60,6 +63,8 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 		m := fmt.Sprintf(msg, transactionNum, currentStockPrice, stockAmountToSell)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SET_SELL_AMOUNT", userID, stock, pendingCashString, "Current stock price is greater than amount wanting to be sold.")
+		elapsed := time.Since(start)
+		appendToText("setSellAmount.txt", elapsed.String())
 		return m
 	}
 
@@ -70,6 +75,8 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 		m := fmt.Sprintf(msg, transactionNum, userID, stock, stockAmountOwned, sellStockAmount)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SET_SELL_AMOUNT", userID, stock, pendingCashString, m)
+		elapsed := time.Since(start)
+		appendToText("setSellAmount.txt", elapsed.String())
 		return m
 	}
 
@@ -78,10 +85,14 @@ func setSellAmount(userID string, stock string, pendingCashString string, transa
 	remainingStockAmount := stockAmountOwned + oldSellStockAmount - sellStockAmount
 	ratdatabase.UpdateUserStockByUserAndStock(userID, stock, remainingStockAmount)
 
+	elapsed := time.Since(start)
+	appendToText("setSellAmount.txt", elapsed.String())
+
 	return fmt.Sprintf("Successfully set SET_SELL_AMOUNT (%s) for %s", pendingCashString, stock)
 }
 
 func setSellTrigger(userID string, stock string, stockSellPrice string, transactionNum int) string {
+	start := time.Now()
 	stockValueCents := stringToCents(stockSellPrice)
 	stockAmountSet := ratdatabase.UpdateSellTriggerPrice(userID, stock, stockValueCents)
 
@@ -90,24 +101,34 @@ func setSellTrigger(userID string, stock string, stockSellPrice string, transact
 		m := fmt.Sprintf(msg, transactionNum, userID, stock)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SET_SELL_TRIGGER", userID, stock, stockSellPrice, m)
+		elapsed := time.Since(start)
+		appendToText("setSellTrigger.txt", elapsed.String())
 		return m
 	}
 	checkSellTrigger(userID, stock, stockValueCents, transactionNum)
+	elapsed := time.Since(start)
+	appendToText("setSellTrigger.txt", elapsed.String())
 	return fmt.Sprintf("Successfully set SET_SELL_TRIGGER (%s) for %s", stockSellPrice, stock)
 }
 
 func cancelSellTrigger(userID string, stock string, transactionNum int) string {
+	start := time.Now()
 	returnAmount := ratdatabase.CancelSellTrigger(userID, stock)
 
 	if returnAmount == 0 {
 		m := fmt.Sprintf("No trigger for %s set", stock)
 		logErrorEvent(serverName, transactionNum, "CANCEL_SET_SELL", userID, stock, "", m)
+		elapsed := time.Since(start)
+		appendToText("cancelSellTrigger.txt", elapsed.String())
 		return m
 	}
 
 	_, oldStockAmount, _ := ratdatabase.GetStockAmountOwned(userID, stock)
 	newStockAmount := oldStockAmount + returnAmount
 	ratdatabase.UpdateUserStockByUserAndStock(userID, stock, newStockAmount)
+
+	elapsed := time.Since(start)
+	appendToText("cancelSellTrigger.txt", elapsed.String())
 
 	return fmt.Sprintf("Cancelled trigger for %s", stock)
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 type commandQuote struct {
@@ -28,9 +29,12 @@ func getQuoteServerConnection() net.Conn {
 }
 
 func getQuote(userID string, stockSymbol string, transactionNum int) int {
+	start := time.Now()
 	exists, quote := cacheExists(stockSymbol)
 	//check if a cached quote exists
 	if exists {
+		elapsed := time.Since(start)
+		appendToText("quoteCache.txt", elapsed.String())
 		return quote
 	}
 
@@ -41,5 +45,7 @@ func getQuote(userID string, stockSymbol string, transactionNum int) int {
 	cacheAdd(stockSymbol, msg)
 	msgSplit := strings.Split(msg, ",")
 	logQuoteEvent(serverName, transactionNum, msgSplit[0], msgSplit[1], msgSplit[2], msgSplit[3], msgSplit[4])
+	elapsed := time.Since(start)
+	appendToText("quote.txt", elapsed.String())
 	return stringToCents(msgSplit[0])
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 	"log"
 )
 
@@ -21,13 +22,19 @@ func (c commandDumplog) process(transaction int) string {
 }
 
 func dumpUser(userID string, filename string, transactionNum int) string {
+	start := time.Now()
 	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG,%s,%s", userID, filename))
 	m := fmt.Sprintf("Dumping log data for %s\n", userID)
 	log.Printf(m)
+	elapsed := time.Since(start)
+	appendToText("dumpLog.txt", "USER" + elapsed.String())
 	return m
 }
 
 func dump(filename string, transactionNum int) {
+	start := time.Now()
 	log.Println("Dumping all log data")
 	sendMsgToAuditServer(fmt.Sprintf("DUMPLOG,%s", filename))
+	elapsed := time.Since(start)
+	appendToText("dumpLog.txt", elapsed.String())
 }

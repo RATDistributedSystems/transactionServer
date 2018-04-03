@@ -38,9 +38,12 @@ func (c commandCommitBuy) process(transaction int) string {
 }
 
 func buy(userID string, stock string, pendingCashString string, transactionNum int) string {
+	start := time.Now()
 	pendingTransactionCash := stringToCents(pendingCashString)
 	stockValue := getQuote(userID, stock, transactionNum)
 	if stockValue <= 0 {
+			elapsed := time.Since(start)
+			appendToText("buy.txt", elapsed.String())
 		return "Stock is worthless. I forbid you from buying"
 	}
 	stockAmount := pendingTransactionCash / stockValue
@@ -50,6 +53,8 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 		m := fmt.Sprintf("[%d] Not enough money for %s to perform buy", transactionNum, userID)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "BUY", userID, stock, pendingCashString, m)
+			elapsed := time.Since(start)
+			appendToText("buy.txt", elapsed.String())
 		return m
 	}
 
@@ -57,6 +62,8 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 		m := fmt.Sprintf("[%d] %s stock price(%d) higher than amount to purchase(%d)", transactionNum, stock, stockValue, pendingTransactionCash)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "BUY", userID, stock, pendingCashString, m)
+			elapsed := time.Since(start)
+			appendToText("buy.txt", elapsed.String())
 		return m
 	}
 
@@ -65,6 +72,9 @@ func buy(userID string, stock string, pendingCashString string, transactionNum i
 	ratdatabase.UpdateUserBalance(userID, newBalance)
 	uuid := ratdatabase.InsertPendingBuyTransaction(userID, pendingTransactionCash, stock, stockValue)
 	log.Printf("[%d] User %s buy transaction for %d %s@%.2f pending", transactionNum, userID, stockAmount, stock, float64(stockValue))
+
+	elapsed := time.Since(start)
+	appendToText("buy.txt", elapsed.String())
 
 	go checkBuy(userID, uuid, transactionNum, pendingTransactionCash, stock)
 	return "Buy for %s has been placed pending cancel/commit from user"
@@ -89,12 +99,15 @@ func checkBuy(userID string, uuid string, transactionNum int, pendingTransaction
 }
 
 func cancelBuy(userID string, transactionNum int) string {
+	start := time.Now()
 	uuid, holdingCash, stockName, _, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
 	if !exists {
 		m := fmt.Sprintf("[%d] Cannot cancel buy. No buys pending", transactionNum)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "CANCEL_BUY", userID, "", "", m)
+		elapsed := time.Since(start)
+		appendToText("cancelBuy.txt", elapsed.String())
 		return m
 	}
 
@@ -106,16 +119,21 @@ func cancelBuy(userID string, transactionNum int) string {
 	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
 	m := fmt.Sprintf("[%d] Buy for stock:%s cancelled by user.", transactionNum, stockName)
 	log.Printf(m)
+	elapsed := time.Since(start)
+	appendToText("cancelBuy.txt", elapsed.String())
 	return m
 }
 
 func commitBuy(userID string, transactionNum int) string {
+	start := time.Now()
 	uuid, holdingCash, stockName, stockPrice, exists := ratdatabase.GetLastPendingBuyTransaction(userID)
 
 	if !exists {
 		m := fmt.Sprintf("[%d] Cannot commit buy for %s. No buy pending", transactionNum, userID)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "COMMIT_BUY", userID, "", "", "Cannot commit buy. No buy pending")
+		elapsed := time.Since(start)
+		appendToText("commitBuy.txt", elapsed.String())
 		return m
 	}
 
@@ -140,5 +158,8 @@ func commitBuy(userID string, transactionNum int) string {
 	}
 
 	ratdatabase.DeletePendingBuyTransaction(userID, uuid)
+
+	elapsed := time.Since(start)
+	appendToText("commitBuy.txt", elapsed.String())
 	return m
 }

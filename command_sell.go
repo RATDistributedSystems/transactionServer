@@ -38,6 +38,7 @@ func (c commandCommitSell) process(transaction int) string {
 }
 
 func sell(userId string, stock string, sellStockDollarsString string, transactionNum int) string {
+	start := time.Now()
 	sellStockValue := stringToCents(sellStockDollarsString)
 	//stockValue := quoteRequest(userId, stock, transactionNum)
 	stockValue := getQuote(userId, stock, transactionNum)
@@ -63,6 +64,8 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 		m := fmt.Sprintf("[%d] %s does not have enough stock %s@%.2f to sell. Have: %d, Need: %d", transactionNum, userId, stock, float64(stockValue/100), stockAmount, stockToSell)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "SELL", userId, stock, sellStockDollarsString, m)
+		elapsed := time.Since(start)
+		appendToText("sell.txt", elapsed.String())
 		return m
 	}
 
@@ -73,6 +76,8 @@ func sell(userId string, stock string, sellStockDollarsString string, transactio
 	transactionUUID := ratdatabase.InsertPendingSellTransaction(userId, stock, potentialProfit, stockValue)
 	log.Printf("[%d] User %s sell transaction for %d %s@%.2f pending", transactionNum, userId, stockToSell, stock, float64(stockValue/100))
 	go checkSell(userId, transactionUUID, stock, stockToSell, sellStockValue, transactionNum)
+	elapsed := time.Since(start)
+	appendToText("sell.txt", elapsed.String())
 	return fmt.Sprintf("Buy request for %s@%.2f pending commit/cancel", stock, float64(sellStockValue/100))
 }
 
@@ -98,12 +103,15 @@ func checkSell(userID string, transactionUUID string, stock string, stockToSell 
 }
 
 func cancelSell(userID string, transactionNum int) string {
+	start := time.Now()
 	transactionUUID, profits, stockName, stockPrice, exists := ratdatabase.GetLastPendingSellTransaction(userID)
 
 	if !exists {
 		m := fmt.Sprintf("[%d] No pending sell transaction to cancel", transactionNum)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "CANCEL_SELL", userID, "", "", m)
+		elapsed := time.Since(start)
+		appendToText("sell.txt", elapsed.String())
 		return m
 	}
 
@@ -121,16 +129,21 @@ func cancelSell(userID string, transactionNum int) string {
 
 	//delete pending transaction
 	ratdatabase.DeletePendingSellTransaction(userID, transactionUUID)
+	elapsed := time.Since(start)
+	appendToText("cancelSell.txt", elapsed.String())
 	return fmt.Sprintf("Cancelled Sale of %s", stockName)
 }
 
 func commitSell(userId string, transactionNum int) string {
+	start := time.Now()
 	transactionUUID, profits, stockName, stockPrice, exists := ratdatabase.GetLastPendingSellTransaction(userId)
 
 	if !exists {
 		m := fmt.Sprintf("[%d] No pending sell transaction to commit", transactionNum)
 		log.Println(m)
 		logErrorEvent(serverName, transactionNum, "COMMIT_SELL", userId, "", "", "No pending sell transaction to commit.")
+		elapsed := time.Since(start)
+		appendToText("commitSell.txt", elapsed.String())
 		return m
 	}
 
@@ -142,5 +155,7 @@ func commitSell(userId string, transactionNum int) string {
 
 	//delete the pending transcation
 	ratdatabase.DeletePendingSellTransaction(userId, transactionUUID)
+	elapsed := time.Since(start)
+	appendToText("commitSell.txt", elapsed.String())
 	return fmt.Sprintf("Commited sale of %s", stockName)
 }
