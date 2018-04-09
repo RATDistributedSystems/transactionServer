@@ -58,7 +58,7 @@ func checkDependency(command string, userId string, stock string) bool {
 	}
 
 	if err != nil {
-		panic(err)
+		log.Print(err)
 	}
 	return count != 0
 }
@@ -70,7 +70,7 @@ func addFunds(userId string, addCashAmount int) {
 
 	//return add funds to user
 	if err := sessionGlobal.Query("UPDATE users SET usableCash =" + totalCashString + " WHERE userid='" + userId + "'").Exec(); err != nil {
-		panic(err)
+		log.Print(err)
 	}
 
 }
@@ -82,11 +82,11 @@ func checkTriggerExists(userId string, stock string, isBuyOperation bool) bool {
 
 	if isBuyOperation == true {
 		if err := sessionGlobal.Query("SELECT count(*) FROM buyTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil {
-			panic(err)
+			log.Print(err)
 		}
 	} else {
 		if err := sessionGlobal.Query("SELECT count(*) FROM sellTriggers WHERE userid='" + userId + "' AND stock='" + stock + "'").Scan(&count); err != nil {
-			panic(err)
+			log.Print(err)
 		}
 	}
 
@@ -107,7 +107,7 @@ func checkStockOwnership(userId string, stock string) (int, string) {
 		}
 	}
 	if err := iter.Close(); err != nil {
-		panic(err)
+		log.Print(err)
 	}
 
 	//returns 0 if stock is empty

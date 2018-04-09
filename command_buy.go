@@ -38,6 +38,11 @@ func (c commandCommitBuy) process(transaction int) string {
 }
 
 func buy(userID string, stock string, pendingCashString string, transactionNum int) string {
+	if !ratdatabase.UserExists(userID) {
+		log.Println("user " + userID + " does not exist")
+		return "No user exists"
+	}
+
 	pendingTransactionCash := stringToCents(pendingCashString)
 	stockValue := getQuote(userID, stock, transactionNum)
 	if stockValue <= 0 {

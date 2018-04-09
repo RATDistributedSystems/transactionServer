@@ -14,6 +14,10 @@ func (c commandDisplaySummary) process(transaction int) string {
 }
 
 func displaySummary(userId string, transactionNum int) string {
+	if !ratdatabase.UserExists(userId) {
+		return "No user exists"
+	}
+
 	account := userAcount{}
 	account.name = userId
 	account.balance = ratdatabase.GetUserBalance(userId)

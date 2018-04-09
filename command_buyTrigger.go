@@ -41,6 +41,11 @@ func (c commandCancelSetBuy) process(transaction int) string {
 }
 
 func setBuyAmount(userID string, stock string, pendingCashString string, transactionNum int) string {
+	if !ratdatabase.UserExists(userID) {
+		log.Println("user " + userID + " does not exist")
+		return "No user exists"
+	}
+
 	buyAmount := stringToCents(pendingCashString)
 	userBalance := ratdatabase.GetUserBalance(userID)
 
